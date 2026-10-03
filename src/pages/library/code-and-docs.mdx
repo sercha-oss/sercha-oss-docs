@@ -274,14 +274,13 @@ GROUP BY d.owning_team, d.doc_kind
 ORDER BY files DESC;
 ```
 
-**What must a new engineer read to understand the ledger subsystem, and in what order?** Search picks the relevant set; the edge and the doc kind impose a reading order.
+**What must a new engineer read to understand the ledger subsystem, and in what order?** The edge picks the relevant set; the doc kind imposes a reading order.
 
 ```sql
 SELECT d.path, d.title, d.doc_kind, d.audience, sub.display_name
 FROM platform_repo.DocFile d
 JOIN platform_repo.Subsystem sub VIA d.mentions_service
 WHERE sub.slug = 'ledger-recon-worker'
-  AND d MATCHES ('reconciliation ledger settlement' USING default TOP 40)
   AND d.doc_kind IN ('readme','adr','api_reference','runbook')
 ORDER BY CASE d.doc_kind
            WHEN 'readme' THEN 1

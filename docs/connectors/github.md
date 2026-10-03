@@ -34,7 +34,7 @@ Go to **[Register a new OAuth application](https://github.com/settings/applicati
 |-------|-------|
 | **Application name** | `Sercha` (or any name you like) |
 | **Homepage URL** | `http://localhost:3000` |
-| **Application description** | Optional - e.g. `Unified Search` |
+| **Application description** | Optional - e.g. `Sercha document sync` |
 | **Authorization callback URL** | `http://localhost:8080/api/v1/oauth/callback` |
 
 Leave **Enable Device Flow** unchecked, then click **Register application**.
@@ -91,7 +91,7 @@ docker compose restart sercha-core
 ```
 
 :::tip
-No data is lost when restarting. The backend containers are stateless - all data is persisted in PostgreSQL and OpenSearch.
+No data is lost when restarting. The backend containers are stateless - all data is persisted in PostgreSQL and the document store.
 :::
 
 You can verify the provider is configured via [List Providers](/api/list-providers):
@@ -166,7 +166,7 @@ Once the sync completes, you'll see the indexed documents listed on the page.
 
 <div className="screenshot">
   <img src="/img/connectors/github/ui-sync-complete.png" alt="Source detail page showing 45 indexed documents" />
-  <div className="screenshot-caption">Sync complete - your documents are now indexed and searchable.</div>
+  <div className="screenshot-caption">Sync complete - your documents are now ingested.</div>
 </div>
 
 </TabItem>

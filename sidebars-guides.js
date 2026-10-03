@@ -5,7 +5,6 @@ module.exports = {
     'development',
     'configuration',
     'indexing',
-    'search',
     'mcp',
   ],
 };

@@ -28,13 +28,9 @@ All configuration is via environment variables.
 | `AUTO_MIGRATE` | `true` | Run pending schema migrations on startup. Set `false` if migrations are managed by sidecars (see the docker-compose example) |
 | `SERCHA_DEV` | -- | When set, allows `sslmode=disable` on the `DATABASE_URL` and skips a few prod-only safety checks |
 
-## Search backends
+## Legacy stores
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENSEARCH_URL` | -- | OpenSearch URL for BM25 search. Example: `http://opensearch:9200` |
-| `PGVECTOR_URL` | -- | PostgreSQL URL for vector search. Can be the same as `DATABASE_URL` |
-| `PGVECTOR_DIMENSIONS` | `1536` | Vector dimensions. Must match your embedding model |
+Search was removed in Sercha 0.23.6. `OPENSEARCH_URL` and `PGVECTOR_URL` are still accepted, but nothing is indexed into or searched from them; they are kept only until the stores are retired.
 
 ## AI providers (optional)
 
@@ -42,26 +38,22 @@ Set the API key for any provider you want to enable. All providers are optional 
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key (embeddings + LLM) |
+| `OPENAI_API_KEY` | OpenAI API key (LLM) |
 | `OPENAI_BASE_URL` | Custom OpenAI-compatible endpoint (default `https://api.openai.com/v1`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key (LLM) |
 | `ANTHROPIC_BASE_URL` | Override Anthropic endpoint (default `https://api.anthropic.com`) |
-| `COHERE_API_KEY` | Cohere API key (embeddings + LLM) |
+| `COHERE_API_KEY` | Cohere API key (LLM) |
 | `COHERE_BASE_URL` | Override Cohere endpoint |
-| `VOYAGE_API_KEY` | Voyage AI API key (embeddings) |
-| `VOYAGE_BASE_URL` | Override Voyage endpoint |
 | `OLLAMA_BASE_URL` | Local Ollama server URL (e.g. `http://localhost:11434`) |
 
 These can also be configured at runtime via the [AI Settings API](/api/update-ai-settings).
 
-### Embedding & LLM rate-limiter tuning
+### LLM rate-limiter tuning
 
-Two separate buckets — embeddings and chat completions are rate-limited independently by the upstream provider, so they need their own client-side budgets. Defaults are sized for OpenAI tier 1; bump for higher tiers.
+Chat completions are rate-limited by the upstream provider, so they need a client-side budget. Defaults are sized for OpenAI tier 1; bump for higher tiers.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `EMBEDDER_TPM` | `1000000` | Embedding bucket — tokens-per-minute |
-| `EMBEDDER_RPM` | `3000` | Embedding bucket — requests-per-minute |
 | `LLM_TPM` | `200000` | LLM bucket — tokens-per-minute |
 | `LLM_RPM` | `500` | LLM bucket — requests-per-minute |
 
@@ -98,12 +90,6 @@ These can also be configured at runtime via the [Providers API](/api/list-provid
 | `SCHEDULER_LOCK_REQUIRED` | `true` | Require distributed lock (for multi-worker deployments) |
 | `SYNC_MIN_INTERVAL` | `5` | Minimum minutes between scheduled syncs of a source |
 | `SYNC_MAX_INTERVAL` | `1440` | Maximum minutes between scheduled syncs of a source |
-
-## Search
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MAX_RESULTS_PER_PAGE` | `100` | Cap on `limit` accepted by the search API |
 
 ## Database tuning
 

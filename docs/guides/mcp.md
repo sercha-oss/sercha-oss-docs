@@ -9,7 +9,7 @@ import TabItem from '@theme/TabItem';
 
 # MCP Integration
 
-Connect AI assistants to Sercha using the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). This allows AI tools like Claude, ChatGPT, and Microsoft Copilot to search your indexed documents directly.
+Connect AI assistants to Sercha using the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). This allows AI tools like Claude, ChatGPT, and Microsoft Copilot to read your documents directly.
 
 <div className="guide-meta">Accurate as of April 2026</div>
 
@@ -26,11 +26,10 @@ Connect AI assistants to Sercha using the [Model Context Protocol (MCP)](https:/
 
 ## Available Tools
 
-Sercha exposes three MCP tools that AI assistants can use:
+Sercha exposes these MCP tools that AI assistants can use:
 
 | Tool | Description | Scope |
 |------|-------------|-------|
-| `search` | Search across all indexed documents using hybrid (BM25 + semantic) search | `mcp:search` |
 | `get_document` | Retrieve the full content and metadata of a document by ID | `mcp:documents:read` |
 | `list_sources` | List all available document sources | `mcp:sources:list` |
 
@@ -59,7 +58,7 @@ Claude.ai, ChatGPT, and Microsoft Copilot connect from their cloud infrastructur
 <Tabs>
 <TabItem value="claude-ai" label="Claude.ai" default>
 
-Connect Sercha to [Claude.ai](https://claude.ai) to search your documents from the web interface.
+Connect Sercha to [Claude.ai](https://claude.ai) to read your documents from the web interface.
 
 ### For Pro and Max Plans
 
@@ -186,7 +185,7 @@ Ask Claude:
 
 > "What MCP tools do you have access to?"
 
-You should see `search`, `get_document`, and `list_sources` from Sercha.
+You should see `get_document` and `list_sources` from Sercha.
 
 ---
 
@@ -273,7 +272,7 @@ Go to **Tools** → **Add a tool** → **New tool** → **Model Context Protocol
 | Field | Value |
 |-------|-------|
 | **Server name** | `Sercha` |
-| **Server description** | `Search indexed documents` |
+| **Server description** | `Read documents from Sercha` |
 | **Server URL** | `https://your-sercha-domain.com/mcp` |
 
 ### 4. Configure authentication
@@ -288,7 +287,7 @@ For manual configuration:
 |-------|-------|
 | **Authorization URL** | `https://your-sercha-domain.com/oauth/authorize` |
 | **Token URL** | `https://your-sercha-domain.com/oauth/token` |
-| **Scopes** | `mcp:search mcp:documents:read mcp:sources:list` |
+| **Scopes** | `mcp:documents:read mcp:sources:list` |
 
 ### 5. Complete setup
 
@@ -298,7 +297,7 @@ For manual configuration:
 
 ### 6. Test the connection
 
-In the agent test panel, try a prompt that would trigger a search.
+In the agent test panel, try a prompt that would list your sources or read a document.
 
 ---
 
@@ -317,10 +316,6 @@ In the agent test panel, try a prompt that would trigger a search.
 
 Once connected, try these prompts with any AI assistant:
 
-> "Search my documents for authentication implementation"
-
-> "Find all documents related to the onboarding process"
-
 > "What sources do I have indexed?"
 
 > "Get the full content of document doc_abc123"
@@ -333,7 +328,7 @@ The AI will automatically call the appropriate Sercha tool and incorporate the r
 
 - **OAuth 2.0 with PKCE** — All authentication uses secure OAuth flows
 - **Scoped access** — Tools only access what the scopes allow
-- **No write operations** — MCP tools are read-only (search, retrieve, list)
+- **No write operations**: MCP tools are read-only (retrieve, list)
 - **Dynamic Client Registration** — Clients register automatically via [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)
 
 ---

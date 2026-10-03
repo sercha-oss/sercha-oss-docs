@@ -120,7 +120,7 @@ const steps = [
   {
     n: '3',
     title: 'Query',
-    desc: 'Traverse the edges you declared. Aggregate, search, join to external APIs.',
+    desc: 'Traverse the edges you declared. Filter, aggregate, join to external APIs.',
     code: 'SELECT a.full_name, COUNT(*) AS n\nFROM library.Paper p\nJOIN library.Author a\n  VIA p.written_by\nGROUP BY a.full_name;',
   },
 ];
@@ -157,7 +157,7 @@ const facts = [
   {
     key: 'Runtime',
     title: 'Self-hosted',
-    desc: 'A single Go binary against Postgres, pgvector and OpenSearch. Documents are read in place from the source system, never copied into a new store.',
+    desc: 'A single Go binary against Postgres. Documents are read in place from the source system, never copied into a new store.',
   },
   {
     key: 'Schema',

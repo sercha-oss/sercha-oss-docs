@@ -294,7 +294,7 @@ WHERE prev.period_label = 'FY24'
 ORDER BY fy24_amount DESC;
 ```
 
-**Which reports raise going concern, and what was the closing cash position in each?** Search as a filter, entity rows as the answer.
+**Which reports raise going concern, and what was the closing cash position in each?** The commentary type is the filter, entity rows are the answer.
 
 ```sql
 SELECT fr.reporting_entity,
@@ -305,7 +305,7 @@ SELECT fr.reporting_entity,
 FROM finance_library.FinancialReport fr
 JOIN finance_library.Commentary c VIA fr.contains_commentary
 JOIN finance_library.LineItem li USING (_doc)
-WHERE c MATCHES ('material uncertainty related to going concern' USING default TOP 25)
+WHERE c.commentary_type = 'going_concern'
   AND li.statement_type = 'cash_flow'
   AND li.label = 'Cash and cash equivalents at end of period'
 ORDER BY fr.period_end DESC;

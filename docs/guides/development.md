@@ -44,7 +44,7 @@ The remaining variables in `.env` are optional:
 |----------|---------|
 | `GITHUB_CLIENT_ID` | GitHub OAuth App client ID ([setup guide](/connectors/github)) |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
-| `OPENAI_API_KEY` | OpenAI key for semantic search and query expansion |
+| `OPENAI_API_KEY` | OpenAI key for LLM features |
 
 ## 2. Start the backend
 
@@ -102,8 +102,8 @@ docker compose up -d --build sercha
 |---------|------|---------|
 | Admin UI (Next.js dev) | 3000 | Hot-reload UI |
 | Sercha API | 8080 | Built from source |
-| PostgreSQL | 5432 | Database + pgvector |
-| OpenSearch | 9200 | BM25 full-text search |
+| PostgreSQL | 5432 | Database |
+| OpenSearch | 9200 | Legacy store, not used for search |
 
 ## Stopping
 

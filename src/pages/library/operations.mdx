@@ -89,8 +89,8 @@ columns or stayed out, because none of them is ever the thing you join on.
 ordered entities with a control flag, but we do not attempt to model branching,
 decision points or conditional paths. Every attempt to model procedures as
 executable flowcharts fails on the same rock: the documents are not written that
-way, so the extractor invents structure. The narrative body stays as text and is
-reachable through `MATCHES`. Also not modelled: individual named people. The
+way, so the extractor invents structure. The narrative body stays as text in the
+source document. Also not modelled: individual named people. The
 corpus names roles far more reliably than incumbents, and roles are what
 continuity planning actually cares about.
 
@@ -488,16 +488,6 @@ WHERE NOT EXISTS (
 GROUP BY bp.process_name, i.cause_category
 HAVING recurrences > 1          -- alias the aggregate: HAVING COUNT(*) does not parse
 ORDER BY minutes_lost DESC;
-```
-
-**Free-text sweep for continuity language nobody indexed.** `MATCHES` filters
-entity rows by their source document, so the procedure columns survive.
-
-```sql
-SELECT p.doc_ref, p.version, p.title, p.status, p.review_due
-FROM coo_library.Procedure p
-WHERE p MATCHES ('manual workaround during supplier outage' USING default TOP 20)
-  AND p.status = 'current';
 ```
 
 ## 6. Views

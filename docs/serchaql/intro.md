@@ -42,7 +42,7 @@ Every statement kind goes through `POST /api/v1/query`:
 
 | Kind | Statements | Who can run it |
 |---|---|---|
-| **DDL** | `CREATE` / `ALTER` / `DROP` on ontologies, entities, edges, corpuses, pipelines, views | admin |
+| **DDL** | `CREATE` / `ALTER` / `DROP` on ontologies, entities, edges, corpuses, views | admin |
 | **DCL** | `GRANT`, `REVOKE` | admin |
 | **Binding** | `BIND`, `UNBIND`, `REBIND`, `RUN BINDING` | admin |
 | **DML** | `SELECT` and set operations | any authenticated caller |

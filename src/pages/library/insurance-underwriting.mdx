@@ -89,7 +89,7 @@ corpus asserts, not what the business wishes it asserted. We also did not model
 policy wording clauses as individual entities. Wordings are long, largely
 boilerplate, and the useful question about them ("does this slip attach a
 non-standard wording") is a column on `Placement`, not a graph of clauses.
-Full-text search over the wording covers the rest.
+Anything else about a wording stays in the source document.
 
 ## 3. The schema
 
@@ -392,20 +392,6 @@ JOIN peril_losses pl ON pl.policy_reference = p.market_reference
 WHERE sub.sublimit_amount < pl.incurred
   AND p.status = 'bound'
 ORDER BY pl.incurred DESC;
-```
-
-**Which slips discuss a contamination or pollution exposure that our structured
-fields never captured?** Free text is where the exposures nobody built a column
-for hide. `MATCHES` filters the entities; the columns survive.
-
-```sql
-SELECT p.market_reference,
-       p.insured_name,
-       p.line_of_business,
-       p.total_insured_value
-FROM uw_files.Placement p
-WHERE p MATCHES ('contamination or pollution clean-up exposure' USING default TOP 40)
-  AND p.status = 'bound';
 ```
 
 ## 6. Views

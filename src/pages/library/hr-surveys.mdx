@@ -377,8 +377,6 @@ GRANT SELECT ON CORPUS listening_rollup TO GROUP executive_committee;
 -- Exit conversations are a narrower circle again, by folder ACL within the
 -- same corpus grant.
 GRANT SELECT ON CORPUS listening TO USER employee_relations_lead@examplecorp.test;
-
-GRANT USE ON PIPELINE comment_search TO GROUP people_analytics;
 ```
 
 ## 5. Queries that earn their keep
@@ -522,19 +520,6 @@ WHERE e.exit_type = 'voluntary'
   AND f.severity IN ('emphasised','decisive')
 GROUP BY f.factor_category
 ORDER BY leavers_citing DESC;
-```
-
-**Which reports discuss psychological safety, whatever they called it?** Search
-as a filter, entity rows as the answer. Culture audits and engagement decks use
-different vocabulary for the same concept, so a `LIKE` on a theme label misses
-most of it.
-
-```sql
-SELECT r.programme_code, r.wave_label, r.population_scope, r.response_count
-FROM listening.SurveyReport r
-WHERE r MATCHES ('psychological safety speaking up without fear of retribution'
-                 USING comment_search TOP 30)
-  AND r.response_count >= 5;
 ```
 
 ## 6. Views

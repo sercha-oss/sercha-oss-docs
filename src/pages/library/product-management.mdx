@@ -34,7 +34,7 @@ Every one of those is currently a spreadsheet somebody rebuilds each quarter, an
 
 **FUZZY where names drift, EXACT where identifiers are transcribed.** Feature-name drift is the canonical case here and it is worse than counterparty drift in a contract estate, because nobody signs a feature name. The PRD calls it "Scheduled Digest Delivery", the spec calls it "digest scheduler", the roadmap row reads "Digests (scheduling)", and the release note announces "Recurring Digests". Normalised string equality resolves none of those pairs, and stemming or token overlap makes it worse rather than better: "Digest Export" and "Digest Import" share three quarters of their tokens and are opposite features. So `about_feature` uses `RESOLVE FUZZY WITHIN sercha_product.Feature`, and the `WITHIN` clause is load-bearing: it confines the judge to extracted `Feature` nodes, so a feature name is never matched against a stakeholder's name or a metric label. By contrast `supersedes` links on `supersedes_ref` with `RESOLVE EXACT`, because a decision record that supersedes another quotes its identifier verbatim from the header block; that is a transcribed string, not a name written from memory, and fuzzy matching there would silently attach the wrong decision to the chain.
 
-**What is deliberately not modelled.** Engineering execution: tickets, sprints, story points, burndown, assignee history. It matters enormously and it belongs in a separate ontology, because it lives in a tracker rather than in prose, arrives through an API rather than through extraction, and modelling it properly needs its own five entities. Bolting a `ticket_id TEXT` onto `Requirement` to gesture at it would be worse than omitting it, since it would be populated on recently written PRDs, null on everything older than a year, and quietly wrong wherever a requirement fanned out into six tickets. Also excluded: full body text of documents. `Requirement` stores a statement and an acceptance criterion, not the surrounding prose; the prose is reachable through the pipeline with `MATCHES`, and copying it into the graph makes the graph large without making it more answerable.
+**What is deliberately not modelled.** Engineering execution: tickets, sprints, story points, burndown, assignee history. It matters enormously and it belongs in a separate ontology, because it lives in a tracker rather than in prose, arrives through an API rather than through extraction, and modelling it properly needs its own five entities. Bolting a `ticket_id TEXT` onto `Requirement` to gesture at it would be worse than omitting it, since it would be populated on recently written PRDs, null on everything older than a year, and quietly wrong wherever a requirement fanned out into six tickets. Also excluded: full body text of documents. `Requirement` stores a statement and an acceptance criterion, not the surrounding prose; the prose stays in the source document, and copying it into the graph makes the graph large without making it more answerable.
 
 ## 3. The schema
 
@@ -337,26 +337,6 @@ ORDER BY newer.authored_on DESC;
 ```
 
 A document that has been superseded but whose `status` was never updated is the failure mode this catches: the edge knows the truth even when the header block does not.
-
-**Topic sweep on entity rows rather than a document list: which approved specs discuss data residency, and what they require.**
-
-```sql
-SELECT d.doc_title,
-       d.target_release,
-       r.requirement_ref,
-       r.requirement_kind,
-       r.priority,
-       r.acceptance_criteria
-FROM product_record.ProductDocument d
-JOIN product_record.Requirement r VIA d.states_requirement
-WHERE d MATCHES ('data residency regional storage sovereignty' USING default TOP 200)
-  AND d.doc_type IN ('tech_spec','prd')
-  AND d.status = 'approved'
-  AND r.requirement_kind IN ('compliance','non_functional')
-ORDER BY d.target_release, r.priority;
-```
-
-`MATCHES` narrows to documents that plausibly discuss the topic; the requirement filter does the precise work. `SEARCH()` as a table would return ranked documents, which is the wrong shape here: the answer is a list of requirements.
 
 **The hard one: must-have requirements that never reached a release note.**
 

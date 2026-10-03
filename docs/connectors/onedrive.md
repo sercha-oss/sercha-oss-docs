@@ -153,7 +153,7 @@ docker compose restart sercha-core
 ```
 
 :::tip
-No data is lost when restarting. The backend containers are stateless - all data is persisted in PostgreSQL and OpenSearch.
+No data is lost when restarting. The backend containers are stateless - all data is persisted in PostgreSQL and the document store.
 :::
 
 You can verify the provider is configured via [List Providers](/api/list-providers):

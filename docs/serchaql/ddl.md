@@ -212,12 +212,9 @@ RUN BINDING <corpus>.<ontology>
 only the named fields. This is how you populate a column added after the
 initial extraction.
 
-## Pipelines and views
+## Views
 
 ```sql
-CREATE PIPELINE <name> ON CORPUS <corpus> TYPE (DEFAULT | MLT);
-DROP PIPELINE [IF EXISTS] <name> [CASCADE | RESTRICT];
-
 CREATE [OR REPLACE] VIEW <name> AS <select>;
 DROP VIEW [IF EXISTS] <name>;
 
@@ -234,11 +231,11 @@ derived entity creates *nodes*.
 ## Access control
 
 ```sql
-GRANT  <privilege> ON (CORPUS | PIPELINE | BINDING) <name> TO   (USER | GROUP) <subject>;
-REVOKE <privilege> ON (CORPUS | PIPELINE | BINDING) <name> FROM (USER | GROUP) <subject>;
+GRANT  <privilege> ON (CORPUS | BINDING) <name> TO   (USER | GROUP) <subject>;
+REVOKE <privilege> ON (CORPUS | BINDING) <name> FROM (USER | GROUP) <subject>;
 ```
 
-`SELECT` grants read on a corpus; `USE` grants use of a pipeline. Bare email
+`SELECT` grants read on a corpus. Bare email
 subjects parse without quoting.
 
 ```sql
@@ -263,7 +260,6 @@ edge *type* from the ontology. The word `GRAPH` is what disambiguates them.
 ```sql
 SHOW ONTOLOGIES | CORPUSES | VIEWS | MATERIALIZED VIEWS;
 SHOW BINDINGS [ON CORPUS <corpus>];
-SHOW PIPELINES [ON CORPUS <corpus>];
 SHOW DAG   ON BINDING <corpus>.<ontology>;
 SHOW HINTS ON BINDING <corpus>.<ontology>;
 SHOW RUNS  [ON BINDING <corpus>.<ontology>];
@@ -283,7 +279,7 @@ Hyphens are not identifier characters. Any name containing one must be
 double-quoted:
 
 ```sql
-SELECT title FROM library.Paper WHERE body MATCHES ('review' USING "default-search" TOP 5);
+SELECT title FROM "field-notes".Paper LIMIT 5;
 ```
 
 Names created with underscores need no quoting.

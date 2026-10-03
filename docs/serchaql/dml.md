@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: DML reference
-description: SELECT, edge traversal, search, aggregation and set operations in SerchaQL.
+description: SELECT, edge traversal, aggregation and set operations in SerchaQL.
 ---
 
 import Playground from '@site/src/components/SerchaQL/Playground';
@@ -40,7 +40,6 @@ The corpus is named in `FROM`. There is no trailing scope clause.
 |---|---|
 | `FROM <corpus>.<Entity> [alias]` | one row per extracted entity instance |
 | `FROM <corpus> [alias]` | one row per document |
-| `FROM SEARCH(<pipeline>, '<query>', TOP <k>) [alias]` | ranked rows: `doc_id`, `score`, `rank`, `snippet` |
 | `FROM ( <select> ) <alias>` | derived table, alias required |
 | `FROM <cte_name> [alias]` | an inlined CTE |
 | `FROM plugins.<operation> [alias]` | rows fetched live from an external API |
@@ -88,7 +87,6 @@ LIMIT 3;`}
 | Existence | `[NOT] EXISTS (SELECT …)` |
 | Scalar subquery | `amount > (SELECT AVG(amount) FROM …)` |
 | Correlated | `a.funder = b.funder` |
-| Search | `<alias> MATCHES ('query' USING <pipeline> TOP <k>)` |
 | Boolean | `AND`, `OR`, `NOT`, parentheses |
 
 Operators: `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`. Precedence is
@@ -131,29 +129,6 @@ LIMIT 3;`}
   }}
   caption="One author, two papers. The edge resolved both mentions to the same node."
 />
-
-## Search
-
-Two ways in, for two different questions.
-
-**`SEARCH(...)` as a table**, when the ranked documents *are* the answer:
-
-```sql
-SELECT s.doc_id, s.snippet, s.score
-FROM SEARCH(default, 'tidal forcing', TOP 5) s
-ORDER BY s.score DESC;
-```
-
-**`MATCHES` as a predicate**, when you want *entity rows* whose source document
-matched. It is a semi-join, so your columns survive:
-
-```sql
-SELECT title, published_on
-FROM library.Paper p
-WHERE p MATCHES ('tidal forcing' USING default TOP 5);
-```
-
-Reach for `MATCHES` when the search is a filter and the entity is the answer.
 
 ## Aggregation
 
@@ -267,3 +242,6 @@ time per operator, so you do not need `EXPLAIN ANALYZE` to profile.
 `INSERT` / `UPDATE` / `DELETE`: data arrives by extraction, not by statement.
 No transactions. No backend configuration through SQL. `RESOLVE SEMANTIC`,
 `SEMANTIC JOIN`, `EMBED` and `CREATE SNAPSHOT` are reserved and rejected.
+
+`SEARCH()` and `MATCHES` were removed in Sercha 0.23.6 along with the search
+index, and are rejected with a parse error. Filter entities with `WHERE`.

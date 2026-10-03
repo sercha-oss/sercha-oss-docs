@@ -38,7 +38,7 @@ Each of these is currently a spreadsheet maintained by hand, and each is wrong w
 
 **Renewal windows are stored as they are written, and computed at query time.** `RenewalTerm` carries `notice_days_before INTEGER` and `anchor` as an enum, not a materialised `next_notice_deadline DATE`. Contracts say "not less than sixty (60) days prior to each anniversary of the Effective Date", and that expression is stable while the derived date is not: it moves every year, and it moves again the moment an amendment changes the term length. Extracting a computed date bakes today's arithmetic into the graph permanently and guarantees it goes stale. Store the rule; compute the deadline in the query, where it is cheap and always current.
 
-**What is deliberately not modelled.** Payment schedules, rate cards and pricing tables. They are genuinely important, and they belong in a separate ontology bound to the same corpus. A rate card is a dense, highly structured table with its own units, tiers, escalators and volume bands; modelling it properly needs five entities of its own and would double the size of this schema for a question set that is financial rather than legal. Cramming a `contract_value FLOAT` onto `Agreement` to gesture at it would be worse than leaving it out, because it would be populated for fixed-fee SOWs, null for MSAs, and meaningless for time-and-materials work. Also excluded: clause-level full text. `Clause` stores heading, number and a short summary; the body is reachable through the pipeline with `MATCHES`, and duplicating it into the graph makes the graph large without making it more answerable.
+**What is deliberately not modelled.** Payment schedules, rate cards and pricing tables. They are genuinely important, and they belong in a separate ontology bound to the same corpus. A rate card is a dense, highly structured table with its own units, tiers, escalators and volume bands; modelling it properly needs five entities of its own and would double the size of this schema for a question set that is financial rather than legal. Cramming a `contract_value FLOAT` onto `Agreement` to gesture at it would be worse than leaving it out, because it would be populated for fixed-fee SOWs, null for MSAs, and meaningless for time-and-materials work. Also excluded: clause-level full text. `Clause` stores heading, number and a short summary; the body stays in the source document, and duplicating it into the graph makes the graph large without making it more answerable.
 
 ## 3. The schema
 
@@ -310,7 +310,7 @@ LIMIT 50;
 
 `_folder` is in the projection because the reviewer works one counterparty relationship at a time, and the folder partition is what makes that grouping free.
 
-**Change of control review for a pending transaction, pulling entity rows out of a text search rather than a document list.**
+**Change of control review for a pending transaction, as clause rows rather than a document list.**
 
 ```sql
 SELECT a.title,
@@ -321,14 +321,13 @@ SELECT a.title,
        cl.favours
 FROM contract_estate.Agreement a
 JOIN contract_estate.Clause cl VIA a.contains_clause
-WHERE a MATCHES ('change of control consent assignment restriction' USING default TOP 200)
-  AND cl.clause_type IN ('change_of_control','assignment')
+WHERE cl.clause_type IN ('change_of_control','assignment')
   AND cl.favours <> 'us'
   AND a.status = 'executed'
 ORDER BY a.counterparty_name;
 ```
 
-`MATCHES` narrows to documents that plausibly discuss the topic; the clause filter does the precise work. Using `SEARCH()` as a table here would return ranked documents, which is the wrong shape: the answer is a list of clauses.
+The clause type does the filtering, so the answer comes back as a list of clauses rather than a list of documents.
 
 **The hard one, part one: which live agreements have a non-renewal notice window opening in the next quarter.**
 

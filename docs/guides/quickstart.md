@@ -9,7 +9,7 @@ import TabItem from '@theme/TabItem';
 
 # Quickstart
 
-Get Sercha running locally with pre-built Docker images. This guide walks through setup, connecting a GitHub source, syncing content, and running your first search.
+Get Sercha running locally with pre-built Docker images. This guide walks through setup, connecting a GitHub source and syncing content.
 
 :::info
 This guide uses GitHub as an example connector. After completing setup, you can connect any supported data source - see [Connectors](/connectors) for all available options.
@@ -46,18 +46,15 @@ EOF
 
 ### Optional variables
 
-Sercha works out of the box with BM25 keyword search. To unlock additional features, add any of the following to your `.env` file. You can also add them later and restart the containers.
+To unlock additional features, add any of the following to your `.env` file. You can also add them later and restart the containers.
 
 ```bash title=".env"
-# Optional: enables semantic search (embeddings)
-OPENAI_API_KEY=sk-your-openai-api-key
-
 # Optional: enables GitHub connector (this guide uses GitHub as an example)
 GITHUB_CLIENT_ID=your_client_id
 GITHUB_CLIENT_SECRET=your_client_secret
 ```
 
-For the `OPENAI_API_KEY`, sign up at [platform.openai.com](https://platform.openai.com/api-keys). For the GitHub credentials, see the [GitHub Connector](/connectors/github) guide.
+For the GitHub credentials, see the [GitHub Connector](/connectors/github) guide.
 
 ## 3. Start the services
 
@@ -100,30 +97,6 @@ Fill in your name, email, and password, then click **Get Started**.
 <div className="screenshot">
   <img src="/img/quickstart/Admin_setup_pt_1.png" alt="Account creation form with name, email, and password fields" />
   <div className="screenshot-caption">Create your administrator account.</div>
-</div>
-
-### Configure AI (optional)
-
-If you set `OPENAI_API_KEY` in step 2, this screen lets you configure the embedding model for semantic search. Select **OpenAI** as the provider and **Text Embedding 3 Small (1536d)** as the model. Click **Test Connection** to verify, then **Save & Continue**.
-
-<div className="screenshot">
-  <img src="/img/quickstart/setup_vector_embedding.png" alt="AI configuration showing OpenAI embedding model with Connection successful" />
-  <div className="screenshot-caption">Configure the embedding model for semantic search. The "Connection successful" banner confirms your API key is working.</div>
-</div>
-
-<div className="warning-box">
-
-**No API key?** If you didn't set `OPENAI_API_KEY` before starting the containers, the connection test will fail. You can skip this step and add it later - just set the env var and restart the containers with `docker compose --profile ui restart sercha`.
-
-</div>
-
-### Configure Capabilities
-
-This screen lets you enable indexing and search capabilities. **Text Indexing (BM25)** is enabled by default. If you configured an embedding model in the previous step, toggle on **Embedding Indexing** to enable semantic and hybrid search.
-
-<div className="screenshot">
-  <img src="/img/quickstart/setup_capabilities_w_semantic.png" alt="Capabilities page with both BM25 and Embedding Indexing enabled" />
-  <div className="screenshot-caption">With both indexing capabilities enabled, BM25 Search, Vector Search, and Hybrid Search are all available.</div>
 </div>
 
 ### Skip adding sources
@@ -277,7 +250,7 @@ Once the sync completes, you'll see the indexed documents listed on the page.
 
 <div className="screenshot">
   <img src="/img/connectors/github/ui-sync-complete.png" alt="Sync complete showing indexed documents" />
-  <div className="screenshot-caption">Sync complete - your documents are now indexed and searchable.</div>
+  <div className="screenshot-caption">Sync complete - your documents are now ingested.</div>
 </div>
 
 </TabItem>
@@ -345,45 +318,6 @@ curl http://localhost:8080/api/v1/sources/{source_id}/sync \
 </TabItem>
 </Tabs>
 
-## 6. Search
-
-<Tabs>
-<TabItem value="ui" label="Admin UI" default>
-
-Open [http://localhost:3000](http://localhost:3000) to access the search interface. Type a query and hit **Search**.
-
-<div className="screenshot">
-  <img src="/img/quickstart/search_pt1.png" alt="Sercha search interface with search bar" />
-  <div className="screenshot-caption">The search interface at localhost:3000. Type a query to search across all your indexed sources.</div>
-</div>
-
-Results show matched documents with snippets, relevance scores, and links back to the original source.
-
-<div className="screenshot">
-  <img src="/img/quickstart/search_pt2.png" alt="Search results showing matched documents with snippets and scores" />
-  <div className="screenshot-caption">Search results with relevance scores, source badges, and content previews.</div>
-</div>
-
-</TabItem>
-<TabItem value="api" label="API">
-
-[Search](/api/search-documents) your indexed content via the API:
-
-```bash title="curl"
-curl -X POST http://localhost:8080/api/v1/search \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "your search query",
-    "limit": 10
-  }'
-```
-
-The response includes matched documents with snippets, relevance scores, and source metadata.
-
-</TabItem>
-</Tabs>
-
 ---
 
 ## Services
@@ -392,8 +326,8 @@ The response includes matched documents with snippets, relevance scores, and sou
 |---------|------|---------|
 | Admin UI | 3000 | Web interface (via nginx) |
 | Sercha API | 8080 | REST API (API + Worker + Scheduler) |
-| PostgreSQL | 5432 | Database + pgvector |
-| OpenSearch | 9200 | BM25 full-text search |
+| PostgreSQL | 5432 | Database |
+| OpenSearch | 9200 | Legacy store, not used for search |
 
 ## Stopping
 
@@ -409,6 +343,5 @@ docker compose --profile ui down -v
 
 - [Connectors](/connectors) - connect other data sources
 - [Indexing Guide](/docs/indexing) - learn the full indexing workflow
-- [Search Guide](/docs/search) - search modes, filtering, and analytics
 - [Development Setup](/docs/development) - build from source with hot reload
 - [Configuration](/docs/configuration) - all environment variables
