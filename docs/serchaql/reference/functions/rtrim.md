@@ -20,7 +20,7 @@ RTRIM( <string> [, <characters> ] )
 | Argument | Description |
 |---|---|
 | `<string>` | The text to trim. |
-| `<characters>` | Optional. The set of characters to remove. Each character counts on its own. Without it, spaces are removed. |
+| `<characters>` | Optional. The set of characters to remove. Each character counts on its own. Without it, white space is removed. |
 
 ## Returns
 
@@ -28,7 +28,7 @@ Text. NULL when any argument is NULL.
 
 ## Usage notes
 
-- Without `<characters>` only the space character is removed, not tabs or line breaks. Use [TRIM](../functions/trim.md) for all white space.
+- Without `<characters>` it removes white space: spaces, tabs, line breaks.
 - `TRIM(TRAILING <characters> FROM <string>)` is the same call.
 - On large tables the engine runs `RTRIM( <string> )` in the data store; with `<characters>` it runs after the rows are read.
 

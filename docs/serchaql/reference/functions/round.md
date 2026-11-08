@@ -30,7 +30,7 @@ ROUND( <number> [, <places> ] )
 
 - A value exactly half way rounds away from zero: `ROUND(2.5)` is `3` and `ROUND(-2.5)` is `-3`. This differs from `CAST(x AS integer)`, which rounds half to even (`2.5` becomes `2`).
 - To get an integer, wrap the result: `CAST(ROUND(x) AS integer)`.
-- The arithmetic is binary floating point, so a decimal that cannot be held exactly can land on the lower side: `ROUND(1.005, 2)` is `1`.
+- It rounds the number as written in decimal, so `ROUND(1.005, 2)` is `1.01`.
 - Text that does not read as a number, or a `<places>` that is not a whole number, fails the query.
 - Runs after the rows are read; it is not pushed to the data store.
 

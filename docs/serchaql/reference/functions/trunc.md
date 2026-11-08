@@ -29,7 +29,7 @@ TRUNC( <number> [, <places> ] )
 ## Usage notes
 
 - Toward zero means a negative number moves up: `TRUNC(-3.7)` is `-3`, while `FLOOR(-3.7)` is `-4`.
-- The arithmetic is binary floating point, so a decimal that cannot be held exactly can lose its last digit: `TRUNC(0.29, 2)` is `0.28`. Use `ROUND` when the value is a decimal amount.
+- It cuts the number as written in decimal, so `TRUNC(0.29, 2)` is `0.29`.
 - To cut a date, use [DATE_TRUNC](../functions/date_trunc.md).
 - Text that does not read as a number, or a `<places>` that is not a whole number, fails the query.
 - Runs after the rows are read; it is not pushed to the data store.

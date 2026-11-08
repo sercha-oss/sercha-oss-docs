@@ -33,7 +33,7 @@ Text. NULL when any argument is NULL.
 
 ## Usage notes
 
-- Without `<characters>`, `TRIM` and `BTRIM` remove white space at both ends: spaces, tabs, line breaks and other Unicode white space. `LTRIM` and `RTRIM` without `<characters>` remove spaces only.
+- Without `<characters>`, `TRIM` and `BTRIM` remove white space at both ends: spaces, tabs, line breaks and other Unicode white space.
 - On large tables the engine runs `TRIM( <string> )` in the data store; with `<characters>` it runs after the rows are read.
 - An empty string reads as NULL, so a value that trims to nothing can behave as NULL when it is read back.
 
