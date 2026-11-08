@@ -1,44 +1,28 @@
 # Sercha
 
-> A governed platform for querying documents like a database. You declare a
-> schema (entities and edges) over a document corpus in SerchaQL, extraction
-> populates it from documents in the source system, and you query the resulting
-> graph with SQL-like syntax. Every read is permission-bounded at execution and
-> written to a hash-chained audit log.
+> Sercha turns an organisation's data (connected systems, landed tables,
+> documents) into tables you query with SerchaQL, a SQL dialect that reads like
+> PostgreSQL. Every query runs as the caller and returns only rows the caller
+> is granted.
 
-Sercha is a commercial product, self-hosted by the customer. It runs as a Go
-binary against PostgreSQL with pgvector, OpenSearch for lexical search, and
-OpenFGA for per-document authorization. Documents are read in place from the
-connected source system rather than copied into a new store.
+What you can read with SerchaQL:
 
-Key concepts:
+- **Model entities and relations**, by bare name (`FROM Customer c`), walked
+  with `JOIN <relation> r ON r.from_key = c.key`.
+- **Landed tables** as `tables.<source>.<table>`, and their normalised form as
+  `clean.<source>.<table>`.
+- **Datasets** as `data.<table>`, also as of a past time with `AS OF`.
+- **Entities extracted from documents** as `<corpus>.<Entity>`, linked with
+  `JOIN ... VIA`.
+- **Saved views and materialized views**, by name.
 
-- **Ontology**: a schema namespace. Mutable draft until bound.
-- **Entity**: a typed object within an ontology. Behaves like a table once
-  extracted. `KEY` marks resolution identity, not a uniqueness constraint.
-- **Edge**: a named directed relationship, resolved at extraction time by exact
-  match or LLM judgement.
-- **Corpus**: a set of documents claimed from a source path.
-- **Binding**: joins a corpus to an ontology and freezes an immutable version.
-  `RUN BINDING` triggers extraction.
-
-Every SerchaQL statement kind (DDL, DCL, DML, SHOW, DESCRIBE, EXPLAIN,
-RUN BINDING) goes through one endpoint: `POST /api/v1/query`.
+Statements run through `POST /api/v1/query`. Agents connect over MCP and can
+call `describe serchaql` for the same language reference these pages hold.
 
 ## Docs
 
-- [What SerchaQL is](https://docs.sercha.dev/serchaql/intro): core concepts, the
-  four nouns, and the three-layer permission model.
-- [DDL reference](https://docs.sercha.dev/serchaql/ddl): every schema, binding
-  and access-control statement.
-- [DML reference](https://docs.sercha.dev/serchaql/dml): SELECT, edge traversal
-  joins, search, aggregation, window functions and set operations.
-- [A worked example](https://docs.sercha.dev/serchaql/example): a document
-  corpus taken end to end, from schema declaration to a granted query.
-- [API reference](https://docs.sercha.dev/api/sercha-enterprise-api): the full
-  REST surface, generated from the OpenAPI spec.
-
-## Optional
-
-- [Execute a SerchaQL statement](https://docs.sercha.dev/api/execute-a-sercha-ql-statement):
-  the single query endpoint, with request and response schemas.
+- [What SerchaQL is](https://docs.sercha.dev/serchaql/intro): what you can read and how.
+- [Querying](https://docs.sercha.dev/serchaql/dml): every clause and function, refused forms with what to write instead, SHOW.
+- [Defining](https://docs.sercha.dev/serchaql/ddl): the model, views, tools, named edges, people, access, document extraction.
+- [Removed and reserved](https://docs.sercha.dev/serchaql/changes): forms older versions accepted.
+- [API](https://docs.sercha.dev/api/sercha-api): tokens, query, saved tools, catalogue, sources, documents, exports.

@@ -1,0 +1,71 @@
+---
+id: get-an-access-token
+title: "Get an access token"
+description: "OAuth 2.0 token endpoint. A service account uses grant_type=client_credentials with its client_id and client_secret; an interactive client exchanges an authorization code (with PKCE code_verifier) or a refresh_token. Send the returned access_token as a Bearer token."
+sidebar_label: "Get an access token"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVk2P2zYQ/SsDnhLA9m6Cnlz04ARpke5hF/EGPWwWBi2NbSayyA4pe11D/z0zpOyVKjmLtteeJHLI+XpvZnhUOfqMjAvGlmqqbmdV2MDbyTUE+w1LwDJ31pRhAjPwSDuTIegss1UZoPLoYU26DItwcPhLVhjk/4ww56/RhYe9YW0meGhkJgdd5qeVRz4bfuYtYBNIOgtmh40U8Cnb6HLNNliu2S1L5i8tfkJmc4RXUfndzfsPcb3YIZmVQXoNlkAD4YrQbxYxjgnMORIIG+T9UFGJuYSB3ic5aLYC71ATUop8okYq6LVX0wclOVGPI0X4Z4U+vLP5QU2PKrPsdBnkVztXmCw6d/U03u/345Wl7biiAktxLpdDPtvgVsufpIuTbZdfMQtsyJF1SMGgF+lzSmXVxaef41E3N4uYG85AJ34JJtn0gUy5VvVInSHpW3mfEGDR5XsJvIt3kxhecZJWpvG1Qda/HlLrMzsU8NzpDMcenSYdGLV4zA/6xYH37896xBm6y+k0xFgsKjJ9HZ8aKXz+9FFYnwOjG8l0SV+HkH2FkbRn8aA/bfAGHIpiuIBtnajKPudC3xaf2qg/1t2DgSqMG97Z0icqvr2+7lu/vRE9w+T/6m35T7jeLsLW6edM4JNj9/zCDKRhjuxF7oGbkSkgnoxePGdE2sqaU/xySm/jD3OUfpzbF4iaY2G25sdEjZov1PcXlZrQFzUAax0R+2kQk9i3kcjSlJvpThcmXzT9anTeiEwYcb585ZwldnPRJce/A/Xk15u+XyfLiXb/zQTb2CJXM3NVOesjmTR35qm6stIDr06QyaBCktZ9VNyC5YCqH2U/4/oOh7kYSfxL2Y4Nvuf773/cd0cC/MpNXYcpnFCCYxTUbbS0Mzd44HWpt/j3BsTbQmS1QZ0LLWtZr2yM14QCI6mJ5x7M7j7yYQkjOfNmcs3rroP33IFcteQkwvOtCXzgWwdowAditGW8xXali4K9lhHskQerLYsD7Dc6tKWmGeqYT4StkumtjuA0Ef3GfV1Gcizdc510XGsNx/+fFJ0nRSJJwKdw5QrNZOAUR44eGzI/qEhm1fQJeXdshOwsOB6X2uNnKupathlf4ofIA//uNBm9FP48PLLChl7C/2/MRR7KCY3xfapzrskqcfWlZ0s9OqmYcWwuXLgcy1dK7Fygd7fzez68bN5K2zicVUvzqL0Qt+v6O6h0uzQ=
+sidebar_class_name: "post api-method"
+info_path: api//sercha-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get an access token"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/oauth/token"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+OAuth 2.0 token endpoint. A service account uses grant_type=client_credentials with its client_id and client_secret; an interactive client exchanges an authorization code (with PKCE code_verifier) or a refresh_token. Send the returned access_token as a Bearer token.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/x-www-form-urlencoded":{"schema":{"type":"object","properties":{"grant_type":{"description":"client_credentials, authorization_code or refresh_token","type":"string"},"client_id":{"description":"Client id","type":"string"},"client_secret":{"description":"Client secret (confidential clients)","type":"string"},"scope":{"description":"Space-separated scopes","type":"string"},"code":{"description":"Authorization code","type":"string"},"redirect_uri":{"description":"Redirect URI used for the code","type":"string"},"code_verifier":{"description":"PKCE verifier","type":"string"},"refresh_token":{"description":"Refresh token","type":"string"}},"required":["grant_type","client_id"]}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"access_token":{"type":"string"},"expires_in":{"description":"Seconds until expiration","type":"integer"},"refresh_token":{"description":"Optional refresh token","type":"string"},"scope":{"description":"Space-delimited scopes","type":"string"},"token_type":{"description":"\"Bearer\"","type":"string"}}}}}},"400":{"description":"OAuth error: invalid_request, invalid_grant, unsupported_grant_type","content":{"application/json":{"schema":{"type":"object"}}}},"401":{"description":"invalid_client","content":{"application/json":{"schema":{"type":"object"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

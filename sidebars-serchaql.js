@@ -1,8 +1,8 @@
 module.exports = {
   serchaqlSidebar: [
     'intro',
-    'ddl',
     'dml',
-    'example',
+    'ddl',
+    'changes',
   ],
 };

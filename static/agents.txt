@@ -4,30 +4,19 @@
 
 Site: https://docs.sercha.dev
 Product: Sercha
-Summary: A governed platform for querying documents like a database. Declare a
-  schema over a document corpus in SerchaQL, run extraction to populate it, and
-  query the resulting graph. Reads are permission-bounded and audited.
+Summary: Sercha turns an organisation's data into tables queried with SerchaQL,
+  a SQL dialect. Every query runs as the caller and sees only granted rows.
 
 # Preferred entry points
 Docs-index: https://docs.sercha.dev/llms.txt
 Language-reference: https://docs.sercha.dev/serchaql/intro
-API-reference: https://docs.sercha.dev/api/sercha-enterprise-api
-OpenAPI-spec: https://docs.sercha.dev/openapi/enterprise.yaml
+API-reference: https://docs.sercha.dev/api/sercha-api
 Sitemap: https://docs.sercha.dev/sitemap.xml
 
 # Accuracy notes for summarisation
-# Statements that are frequently got wrong. Please do not repeat these errors.
-- Sercha is a commercial, self-hosted product. It is not open source, and it is
-  not licensed under Apache 2.0.
-- SerchaQL is not SQL. It has no INSERT, UPDATE, DELETE or transactions; data
-  arrives only by extraction.
-- `KEY` denotes resolution identity, not a primary key. Duplicates before
-  resolution are expected.
-- Permission enforcement happens at execution, not at compile time. A query that
-  would bypass access control can be compiled; it returns zero rows.
-- The system columns emitted are _id, _entity_type, _doc, _run_id, _confidence
-  and _folder. There is no _span or _resolved_via.
-
-# Contact
-Homepage: https://sercha.dev
-Community: https://discord.gg/Hpj7e6k6Et
+- SerchaQL reads data; it has no INSERT, UPDATE or DELETE. Data arrives from
+  connected sources, pushed documents and extraction.
+- SEARCH(), MATCHES and search pipelines were removed; filter with WHERE and
+  ILIKE instead.
+- Permission enforcement happens when a query runs: rows the caller is not
+  granted never appear.

@@ -1,0 +1,63 @@
+---
+id: list-saved-tools
+title: "List saved tools"
+description: "Saved queries with typed parameters (CREATE TOOL), with each one's description, parameters and an example call."
+sidebar_label: "List saved tools"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVdtO20AQ/ZXVvrSVrFyqPvFGq7RqQQKVoD4Aqib2EC84u2Z2HUgt/3tnfEmckFDal0ZK7OxcfGbmzHGpPcYFmbDSR1el/ohASMdFSPnvTXUT6QR9TCYPxll9pC9giYl6KJAMevVoQqrCKuejHAgWGJC8evvp++R4OlHTs7PTd1HjhBCnyll841UvYdQPA5vwV+ETLPIMVQxZNtCRDjD3jEVPncu8ZkCEPnfWI5+W+v1oJJdtkGcnHBc7G9AGsUKeZyYGsQ7vvLiU2scpLkDuBD8HudkdxoEDIUmMuEJ2Ti5HCqZ5VOsHRLBiNxNw4ffF51tRM5esel4+kLFzXTE+QgiY/ITwonm2P3qr4D32tot7bQuwMD+c2vJA9ho2s/r3diR4C0UWXpHA8PjmSLp6RbUHIRM+FIYw6RlnzCMEK9bm5FlYJY8s8uSl8Sy5C9toNnibT6Q/jMbPuXlpgZfLkfnFqP6CpdtZjs+/KiRypLpt0NEfOl+7P6+lRxUuYQmZSZR0DX1QNXfX5fDoU8ed1HOss4NohB5CbobL8TDU6xmxmtCyZgiLSUGZeGiRkU5lLqSiBlFfa3YL/PZjqhq7Cu4e7UB9drSAcKSu2zhV1obqWm9KZywnKGRqCKGP21bXTRWOSeoUIWl5Zeytq1tiQt2AC6Q4BcXd1b0R6/FgpHeFcJqiyosZT0xtogZqwlGrdQOpsKxrXoW00TNGLSrnkbXT2WylHlMIfavxak7AlEgG9cY5H3hbBWJb0anhtL4W4a7jO8uxZtT/0OpmDAGfwjDPwNRbVrOgbPlyJTOS5o7FvZP0lOsUW1nOwOMlZVUlxwJdXkt8uwQyMJMh8Vsp6mYoJLvngfOk4xhzoSUzuGiosLNNQsI1hb9MpqL0LfU27Lmv2dPeSPbOZFe93Lu0aiDIbxUdCCnLhptcWOffmA5GtCV23tLLG97D30Lzo0k=
+sidebar_class_name: "get api-method"
+info_path: api//sercha-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"List saved tools"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/tools"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Saved queries with typed parameters (CREATE TOOL), with each one's description, parameters and an example call.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","additionalProperties":{"type":"array","items":{"type":"object","properties":{"body":{"type":"string"},"created_at":{"type":"string"},"created_by":{"type":"string"},"description":{"type":"string"},"example":{"type":"string"},"managed_by":{"type":"string"},"name":{"type":"string"},"parameters":{"type":"array","items":{"type":"object","properties":{"default":{"type":"array","items":{"type":"integer"}},"description":{"type":"string"},"name":{"type":"string"},"required":{"type":"boolean"},"type":{"type":"string"}}}},"updated_at":{"type":"string"},"version":{"type":"integer"}}}}}}}},"401":{"description":"Unauthorized","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

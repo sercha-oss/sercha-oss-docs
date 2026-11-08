@@ -1,289 +1,170 @@
 ---
-sidebar_position: 2
-title: DDL reference
-description: Every schema, binding and access-control statement in SerchaQL.
+sidebar_position: 3
+title: "Defining"
+description: "The admin statements: the model, views, materialized views, tools, named edges, people, access and document extraction."
 ---
 
-import Playground from '@site/src/components/SerchaQL/Playground';
-
-# DDL reference
-
-Schema, binding, lifecycle and access control. Queries are in the
-[DML reference](./dml.md).
-
-All statements on this page require an **admin** caller.
-
-## Ontology
-
-```sql
-CREATE ONTOLOGY <name>;
-DROP ONTOLOGY [IF EXISTS] <name> [CASCADE | RESTRICT];
-```
-
-`CASCADE` drops contained entities, edges and bindings. `RESTRICT` fails if
-anything still depends on it.
-
-## Entity
-
-```sql
-CREATE ENTITY <ontology>.<Name> (
-  <column> <type> [KEY] [NOT NULL] [CHECK (<column> IN ('a','b'))] [EXTRACT '<hint>'],
-  ...
-  [KEY (<col1>, <col2>, ...)]          -- composite key
-)
-[ROOT] [SINGULAR PER DOC] [BOUNDED PER DOC]
-[UNDER <ontology>.<Parent>] [LAZY] [STRICT JSON]
-[DERIVED FROM ( <select> ) [INTO CORPUS <name>]];
-```
-
-### Column types
-
-| Written | Stored as |
-|---|---|
-| `TEXT`, `VARCHAR`, `STRING` | `text` |
-| `INTEGER`, `INT`, `BIGINT`, `SMALLINT` | `integer` |
-| `FLOAT`, `REAL`, `NUMERIC`, `DECIMAL` | `float` |
-| `BOOLEAN`, `BOOL` | `boolean` |
-| `DATE` | `date` |
-
-A column with `CHECK (col IN (…))` surfaces as type `enum` with its values
-populated. **Only the `IN`-list form of `CHECK` is supported**. It exists to
-constrain a vocabulary, not to express arbitrary predicates.
-
-### Modifiers
-
-| Modifier | Meaning |
-|---|---|
-| `ROOT` | Document-root entity. The extraction DAG starts here. |
-| `SINGULAR PER DOC` | At most one instance per document. |
-| `BOUNDED PER DOC` | A bounded number of instances per document. |
-| `UNDER <ont>.<Parent>` | Parent/child hierarchy; creates an internal `part_of` edge. Same ontology only. |
-| `LAZY` | Defer extraction. Parsed; not yet fully enforced. |
-| `STRICT JSON` | Strict-format extraction. Parsed; not yet fully enforced. |
-
-`EXTRACT '<hint>'` on a column tells the extractor what that column means. Use
-it when the column name alone is ambiguous.
-
-<Playground
-  query={`CREATE ENTITY research.Author (
-  full_name    TEXT KEY,
-  affiliation  TEXT,
-  role         TEXT CHECK (role IN ('lead','contributing','reviewer'))
-) UNDER research.Paper;
-
--- A composite key: neither column identifies a grant alone.
-CREATE ENTITY research.Grant (
-  funder    TEXT,
-  reference TEXT,
-  amount    FLOAT,
-  KEY (funder, reference)
-) UNDER research.Paper;`}
-  result={{
-    columns: ['object', 'status'],
-    rows: [
-      {object: 'entity research.Author', status: 'created'},
-      {object: 'entity research.Grant', status: 'created'},
-    ],
-    ms: 41,
-  }}
-/>
-
-```sql
-ALTER ENTITY <ontology>.<Name> ADD COLUMN <column_def>;
-ALTER ENTITY <ontology>.<Name> DROP COLUMN <column>;
-DROP ENTITY [IF EXISTS] <ontology>.<Name> [CASCADE | RESTRICT];
-```
-
-## Edge
-
-```sql
-CREATE EDGE <ontology>.<name>
-  ON <ont>.<Source> <VERB> <ont>.<Target>
-  [LINK BY <field> RESOLVE (EXACT | FUZZY)]
-  [WITHIN <ont>.<Scope>];
-```
-
-`<VERB>` is any identifier. It becomes the edge's display label, case
-preserved. Write the relationship as you would say it: `WROTE`, `CITES`,
-`SUPERSEDES`.
-
-`LINK BY` and `RESOLVE` go together and are **jointly optional**:
-
-- **Both omitted** → an *internal* edge: a structural relationship within a
-  single document, resolved by position rather than by matching a value.
-- **Both present** → an *external* edge: `LINK BY` names the source field whose
-  value is matched against the target's `KEY`.
-
-`RESOLVE EXACT` is normalised string equality, no LLM. `RESOLVE FUZZY` is an
-LLM-judged match; `WITHIN` narrows the candidate pool it considers.
-
-<Playground
-  query={`-- External edge: match the author name written on the paper
--- against the Author key, tolerating spelling drift.
-CREATE EDGE research.written_by
-  ON research.Paper WRITTEN_BY research.Author
-  LINK BY author_name RESOLVE FUZZY WITHIN research.Author;
-
--- Internal edge: a citation belongs to the paper it appears in.
-CREATE EDGE research.contains_citation
-  ON research.Paper CONTAINS research.Citation;`}
-  result={{
-    columns: ['object', 'status'],
-    rows: [
-      {object: 'edge research.written_by', status: 'created'},
-      {object: 'edge research.contains_citation', status: 'created'},
-    ],
-    ms: 33,
-  }}
-  caption="RESOLVE SEMANTIC is reserved and rejected; it is not available yet."
-/>
-
-## Corpus
-
-```sql
-CREATE CORPUS <name>
-  ON <connector>.<source>.<path>[, <connector>.<source>.<path> ...]
-  [USING ONTOLOGY <ontology>]
-  [PARTITION BY FOLDER [LEVEL <n>]];
-
-ALTER CORPUS <name> ADD PATH '<path>';
-ALTER CORPUS <name> REPARTITION;
-DROP CORPUS [IF EXISTS] <name> [CASCADE | RESTRICT];
-```
-
-A target is always three parts: **connector**, **source name**, then a dotted
-container path. Quote any segment containing dots or spaces.
-
-`PARTITION BY FOLDER` makes the folder a first-class dimension. The `_folder`
-system column becomes queryable, so "group by client folder" is a `GROUP BY`
-rather than a string operation on paths.
-
-## Binding
-
-```sql
-BIND   CORPUS <corpus> TO   ONTOLOGY <ontology>;
-UNBIND CORPUS <corpus> FROM ONTOLOGY <ontology>;
-REBIND CORPUS <corpus> TO <ontology>[@<version>];
-```
-
-`BIND` freezes the ontology draft into an immutable version and pins the
-binding to it. **A corpus binds to exactly one ontology**; a second `BIND` is
-an error.
-
-`REBIND` replaces: it tears down the existing entities and edges and
-re-extracts under the new version. `@<version>` pins a specific frozen version;
-omit it for the latest.
-
-### Extraction hints
-
-```sql
-ALTER BINDING <corpus>.<ontology>
-  SET HINT ON <operation> WHERE root = <Entity> AS '<hint text>';
-
-ALTER BINDING <corpus>.<ontology> PRUNE GENERATIONS;
-```
-
-A hint attaches to one node of the extraction DAG. List the real nodes with
-`SHOW DAG ON BINDING <corpus>.<ontology>`.
-
-:::caution Hint the root, not the child
-`extract_internals` invocations exist **only for root entities**. An entity
-declared `UNDER` a root is extracted *inside* that root's invocation, so
-hinting the child fails. Hint the root and describe the children there.
+:::note
+Every example on this page is parsed by the SerchaQL engine in a test, and every refused form is checked to still be refused. Agents get the same reference from `describe serchaql`.
 :::
 
-Two hint mechanisms, for different jobs:
+## Defining the model (admin)
 
-| | `EXTRACT '<hint>'` on a column | `SET HINT` on a binding |
-|---|---|---|
-| Scope | one column | one DAG node (a whole root's extraction) |
-| Lifetime | permanent, part of the ontology | on the binding; re-settable without rebinding |
-| Use for | "this column means X" | "for this root, prefer Y; disambiguate children like Z" |
-
-## Running extraction
+The model names what the organisation's data is about. An entity is a kind of
+thing, built by a `SELECT`; a relation is a kind of link between two entities,
+built by a `SELECT` returning `from_key` and `to_key`. Both are then queried by
+bare name. Kinds: `THING`, `ARTEFACT`, `QUALITY`, `FUNCTION`, `DISPOSITION`,
+`ROLE`, `PROCESS`, `EVENT`.
 
 ```sql
-RUN BINDING <corpus>.<ontology>
-  [WHERE document_id = '<id>']
-  [EXTRACT (<Entity>.<field>, ...)];
+CREATE OR REPLACE ENTITY Customer THING KEY key
+  DESCRIPTION 'An organisation that buys from us, one row per account number.'
+  AS SELECT t.account_no AS key, MIN(t.name) AS name, MIN(t.region) AS region
+     FROM clean.crm.account t
+     GROUP BY t.account_no;
 ```
-
-`WHERE document_id` scopes the run to a single document. `EXTRACT (…)` backfills
-only the named fields. This is how you populate a column added after the
-initial extraction.
-
-## Pipelines and views
 
 ```sql
-CREATE PIPELINE <name> ON CORPUS <corpus> TYPE (DEFAULT | MLT);
-DROP PIPELINE [IF EXISTS] <name> [CASCADE | RESTRICT];
-
-CREATE [OR REPLACE] VIEW <name> AS <select>;
-DROP VIEW [IF EXISTS] <name>;
-
-CREATE MATERIALIZED VIEW <name> AS <select>;
-REFRESH MATERIALIZED VIEW <name>;
-DROP MATERIALIZED VIEW [IF EXISTS] <name>;
+CREATE OR REPLACE ENTITY Order EVENT KEY key TITLE title TIME placed_at
+  DESCRIPTION 'A purchase order a customer placed.'
+  AS SELECT p.po_no AS key, p.po_no AS title, p.account_no AS customer, p.total AS amount, p.po_date AS placed_at
+     FROM tables.drive.purchase_order p;
 ```
-
-A **view** is a saved query, expanded on use. A **materialized view** caches its
-rows into its own graph and is versioned; `REFRESH` produces a new version.
-They are not the same thing as a derived entity: an mview caches *rows*, a
-derived entity creates *nodes*.
-
-## Access control
 
 ```sql
-GRANT  <privilege> ON (CORPUS | PIPELINE | BINDING) <name> TO   (USER | GROUP) <subject>;
-REVOKE <privilege> ON (CORPUS | PIPELINE | BINDING) <name> FROM (USER | GROUP) <subject>;
+CREATE OR REPLACE RELATION placed (Customer places Order)
+  DESCRIPTION 'The customer whose account a purchase order is raised against.'
+  AS SELECT o.customer AS from_key, o.key AS to_key FROM Order o;
 ```
 
-`SELECT` grants read on a corpus; `USE` grants use of a pipeline. Bare email
-subjects parse without quoting.
+A relation can be judged instead of computed: `INFER FROM` gives candidate
+pairs with an `evidence` column, and a model decides each pair against the
+`JUDGE` rule. `REFRESH RELATION <name>` judges again.
 
 ```sql
-GRANT SELECT ON CORPUS library TO GROUP researchers;
-GRANT SELECT ON CORPUS library TO USER sam@example.org;
+CREATE OR REPLACE RELATION about (Ticket concerns Product)
+  DESCRIPTION 'The product a support ticket is about.'
+  INFER FROM (
+    SELECT t.key AS from_key, p.key AS to_key, CONCAT('Ticket: ', t.title, '. Product: ', p.name) AS evidence
+    FROM Ticket t JOIN Product p ON p.area = t.area
+  )
+  JUDGE 'The ticket reports a problem with, or asks how to use, this product.';
 ```
 
-## Teardown
+Other model statements:
+
+- `DROP ENTITY [IF EXISTS] <Name>`, `DROP RELATION [IF EXISTS] <name>`.
+- `ALTER TABLE <layer name> RENAME TO tables.<source>.<table>`: give a landed
+  table its layer name.
+- `ALTER TABLE <layer name> SET MODEL IGNORE` / `DROP MODEL IGNORE`: leave a
+  table out of model coverage.
+- `ALTER TABLE tables.<source>.<table> NORMALISE <col> BY CASE, PUNCTUATION, PLURAL [, ALSO <col>] [KEEP <col>, ...]`
+  builds `clean.<source>.<table>`; `DROP NORMALISE` removes it; `REFRESH TABLE clean.<source>.<table>` rebuilds it.
 
 ```sql
-DROP RUN [IF EXISTS] <run_id> [FORCE];   -- FORCE for the current generation
-DROP GRAPH ON RUN <run_id> [FORCE];      -- drop the graph, keep the run record
-DROP NODE <node_id>;
-DROP GRAPH EDGE <edge_id>;
+ALTER TABLE tables.crm.account NORMALISE name BY CASE, PUNCTUATION, PLURAL KEEP account_no;
 ```
 
-`DROP GRAPH EDGE` removes an extracted edge instance. `DROP EDGE` removes the
-edge *type* from the ontology. The word `GRAPH` is what disambiguates them.
+## Views, materialized views and tools (admin)
 
-## Introspection
+A **view** is a saved `SELECT`, run each time it is read. A **materialized
+view** stores its result and is read from the store; `REFRESH MATERIALIZED
+VIEW` recompiles its text and runs it again. Use a materialized view for a
+step many queries share or one that is slow to compute.
 
 ```sql
-SHOW ONTOLOGIES | CORPUSES | VIEWS | MATERIALIZED VIEWS;
-SHOW BINDINGS [ON CORPUS <corpus>];
-SHOW PIPELINES [ON CORPUS <corpus>];
-SHOW DAG   ON BINDING <corpus>.<ontology>;
-SHOW HINTS ON BINDING <corpus>.<ontology>;
-SHOW RUNS  [ON BINDING <corpus>.<ontology>];
-SHOW LINEAGE OF '<node_id>';
-DESCRIBE <corpus>.<Entity>;
+CREATE OR REPLACE VIEW open_orders AS
+SELECT o.key, o.customer, o.amount FROM Order o WHERE o.closed_at IS NULL;
 ```
-
-:::note DESCRIBE takes a corpus
-The left side of `DESCRIBE` is a **corpus**, not an ontology. It reports the
-shape of extracted data, including fill rates, which only exists once something
-has been extracted.
-:::
-
-## A note on identifiers
-
-Hyphens are not identifier characters. Any name containing one must be
-double-quoted:
 
 ```sql
-SELECT title FROM library.Paper WHERE body MATCHES ('review' USING "default-search" TOP 5);
+CREATE OR REPLACE MATERIALIZED VIEW customer_totals AS
+SELECT o.customer AS customer, COUNT(*) AS orders, SUM(o.amount) AS total
+FROM Order o GROUP BY o.customer;
+REFRESH MATERIALIZED VIEW customer_totals;
+ALTER MATERIALIZED VIEW customer_totals SET AUTO REFRESH ON;
+COMMENT ON MATERIALIZED VIEW customer_totals IS 'Orders and spend per customer.';
+COMMENT ON COLUMN customer_totals.total IS 'Sum of order amounts, in dollars.';
 ```
 
-Names created with underscores need no quoting.
+A **tool** is a saved query with typed parameters, used as `:name` in the
+body. It appears to agents as an MCP tool of its own, described by its
+`COMMENT`s. `CALL` runs one.
+
+```sql
+CREATE OR REPLACE TOOL customer_orders (
+  customer TEXT COMMENT 'The customer account number.',
+  top INTEGER DEFAULT 10 COMMENT 'How many orders to return.'
+) COMMENT 'A customer''s most recent orders with their amounts.'
+AS SELECT o.key, o.amount, o.placed_at
+   FROM Order o
+   WHERE o.customer = :customer
+   ORDER BY o.placed_at DESC
+   LIMIT :top;
+```
+
+```sql
+CALL customer_orders(customer => 'acme', top => 5);
+```
+
+Also: `DROP VIEW`, `DROP MATERIALIZED VIEW`, `DROP TOOL` (each with
+`IF EXISTS`), `DETACH PRESET <name>` (take over a preset's views and tools so
+the tenant can change them).
+
+## Named edges and people (admin)
+
+A **named edge** links rows of two datasets, views or extracted entities (not `tables.` layer names) by a rule: equal values (`=`),
+one column mentioning the other (`MENTIONS`), or a list column naming the
+other (`LISTS`). `RESOLVE FUZZY` proposes close matches. `PREVIEW EDGE` shows a
+sample before it is stored, `REFRESH EDGES` re-resolves.
+
+```sql
+CREATE EDGE order_customer ON data.purchase_orders PLACED_BY data.accounts LINK BY account_no = account_no RESOLVE EXACT;
+CREATE EDGE note_mentions_order ON data.notes MENTIONS data.purchase_orders LINK BY body MENTIONS po_no RESOLVE FUZZY;
+```
+
+**People** gather each person's identities across sources into one person:
+
+```sql
+CREATE PEOPLE staff FROM data.directory KEY (email KIND email) TAG internal;
+REFRESH PEOPLE;
+```
+
+## Access (admin)
+
+```sql
+GRANT SELECT ON DATASET data.regions TO USER 'analyst@example.com';
+GRANT SELECT ON CORPUS books TO GROUP 'finance';
+REVOKE SELECT ON CORPUS books FROM GROUP 'finance';
+```
+
+Privileges: `SELECT`, `USE`, `WRITE`. Objects: `CORPUS`, `DATASET`, `SOURCE`,
+a corpus `PARTITION`. Model entities and relations are read with the grants
+on the tables they are made from.
+
+## Extracting entities from documents (admin)
+
+This is the older layer, still supported: an ontology declares the entities to
+read out of documents, a corpus collects the documents, and a binding runs
+extraction. New work usually lands documents as tables and builds the model
+over them instead.
+
+```sql
+CREATE ONTOLOGY books;
+CREATE ENTITY books.Invoice (
+  invoice_no TEXT KEY EXTRACT 'The invoice number as printed',
+  supplier TEXT EXTRACT 'The supplier name',
+  total NUMERIC EXTRACT 'The invoice total including tax'
+) ROOT SINGULAR PER DOC;
+CREATE CORPUS books ON drive."Finance"."Invoices" USING ONTOLOGY books PARTITION BY FOLDER;
+BIND CORPUS books TO ONTOLOGY books;
+```
+
+The rest of this layer: `ALTER ENTITY ... ADD COLUMN | DROP COLUMN | SET
+DESCRIPTION | SET NATURAL KEY | ALTER COLUMN ... SET SENSITIVE`; `CREATE RECORD
+TYPE`; `CREATE EDGE <ontology>.<name> ON ... LINK BY ... RESOLVE`; `CREATE
+STRUCTURE`; `ALTER CORPUS ... ADD PATH | REPARTITION | ATTACH DATASET | DETACH
+DATASET`; `UNBIND` and `REBIND CORPUS`; `ALTER BINDING ... SET HINT | SET WINDOW
+| DROP WINDOW | PRUNE GENERATIONS`; `RUN BINDING ... [ESTIMATE]`; `CANCEL RUN`;
+`DROP RUN`, `DROP GRAPH ON RUN`, `DROP NODE`, `DROP GRAPH EDGE`. A `REBIND`
+hides the corpus's rows until the next run completes.

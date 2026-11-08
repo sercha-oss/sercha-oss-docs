@@ -1,269 +1,243 @@
 ---
-sidebar_position: 3
-title: DML reference
-description: SELECT, edge traversal, search, aggregation and set operations in SerchaQL.
+sidebar_position: 2
+title: "Querying"
+description: "Every query clause and function SerchaQL accepts, the forms it refuses with what to write instead, and the read-only SHOW forms."
 ---
 
-import Playground from '@site/src/components/SerchaQL/Playground';
-
-# DML reference
-
-Querying extracted data. Schema statements are in the
-[DDL reference](./ddl.md).
-
-`SELECT` does **not** require admin. It is bounded by the
-[permission model](#permissions) instead.
-
-## Shape
-
-Clause order is fixed:
-
-```sql
-[WITH [RECURSIVE] <cte> AS ( <select> ), ...]
-SELECT [DISTINCT] <projection>, ...
-FROM <source> [<alias>]
-[ [LEFT [OUTER]] JOIN <source> [<alias>]
-    ( VIA <alias>.<edge> | USING (<column>) | ON <a>.<c> = <b>.<d> [AND ...] ) ]...
-[WHERE <predicate>]
-[GROUP BY <column>, ...]
-[HAVING <predicate>]
-[ORDER BY <expr> [ASC | DESC], ...]
-[LIMIT <n>] [OFFSET <n>]
-[ (UNION [ALL] | INTERSECT | EXCEPT) <select> ]...
-```
-
-The corpus is named in `FROM`. There is no trailing scope clause.
-
-## Sources
-
-| Source | Produces |
-|---|---|
-| `FROM <corpus>.<Entity> [alias]` | one row per extracted entity instance |
-| `FROM <corpus> [alias]` | one row per document |
-| `FROM SEARCH(<pipeline>, '<query>', TOP <k>) [alias]` | ranked rows: `doc_id`, `score`, `rank`, `snippet` |
-| `FROM ( <select> ) <alias>` | derived table, alias required |
-| `FROM <cte_name> [alias]` | an inlined CTE |
-| `FROM plugins.<operation> [alias]` | rows fetched live from an external API |
-
-## System columns
-
-Every entity scan carries provenance columns alongside your declared ones:
-
-| Column | Meaning |
-|---|---|
-| `_id` | canonical node id, after alias resolution |
-| `_entity_type` | the entity type |
-| `_doc` | a source document id from lineage |
-| `_run_id` | the extraction run that wrote this node |
-| `_confidence` | extraction confidence |
-| `_folder` | folder partition key, only when the corpus uses `PARTITION BY FOLDER` |
-
-`_doc` is the one worth knowing: it is what the permission filter keys on, and
-what you join through to reach document metadata.
-
-<Playground
-  query={`SELECT _id, _doc, title, published_on
-FROM library.Paper
-ORDER BY published_on DESC
-LIMIT 3;`}
-  result={{
-    columns: ['_id', '_doc', 'title', 'published_on'],
-    rows: [
-      {_id: '3ab1…c07', _doc: 'doc_5512', title: 'Sediment transport under tidal forcing', published_on: '2025-11-02'},
-      {_id: '9f42…1ba', _doc: 'doc_4471', title: 'A revised estuary salinity model', published_on: '2025-08-19'},
-      {_id: 'c710…9de', _doc: 'doc_3980', title: 'Seasonal turbidity in shallow bays', published_on: '2025-06-30'},
-    ],
-    ms: 47,
-  }}
-/>
-
-## Predicates
-
-| Form | Example |
-|---|---|
-| Comparison | `amount > 5000`, `published_on >= DATE '2025-01-01'` |
-| Null tests | `_confidence IS NOT NULL` |
-| Lists | `role IN ('lead','reviewer')`, `role NOT IN ('reviewer')` |
-| Subqueries | `_id IN (SELECT _id FROM …)`, `NOT IN (…)` |
-| Existence | `[NOT] EXISTS (SELECT …)` |
-| Scalar subquery | `amount > (SELECT AVG(amount) FROM …)` |
-| Correlated | `a.funder = b.funder` |
-| Search | `<alias> MATCHES ('query' USING <pipeline> TOP <k>)` |
-| Boolean | `AND`, `OR`, `NOT`, parentheses |
-
-Operators: `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`. Precedence is
-`OR` &lt; `AND` &lt; `NOT`.
-
-## Joins
-
-Three ways to relate two sources:
-
-**`VIA` traverses a declared edge.** This is the graph join, and the one that
-makes the schema pay off.
-
-```sql
-JOIN <corpus>.<Entity> <alias> VIA <sourceAlias>.<edge_name>
-```
-
-**`USING (col)` equi-joins on a shared column.** Most often `USING (_doc)`, to
-put two entities from the same document side by side.
-
-**`ON a.col = b.col` is explicit equality.** Both sides must be alias-qualified;
-chain with `AND`.
-
-Only `JOIN` and `LEFT [OUTER] JOIN` exist. There is no `RIGHT` or `FULL`.
-
-<Playground
-  query={`-- Which authors wrote which papers, following the edge.
-SELECT p.title, a.full_name, a.affiliation
-FROM library.Paper p
-JOIN library.Author a VIA p.written_by
-WHERE a.role = 'lead'
-LIMIT 3;`}
-  result={{
-    columns: ['title', 'full_name', 'affiliation'],
-    rows: [
-      {title: 'Sediment transport under tidal forcing', full_name: 'R. Okonkwo', affiliation: 'Coastal Institute'},
-      {title: 'A revised estuary salinity model', full_name: 'M. Lindqvist', affiliation: 'Northern University'},
-      {title: 'Seasonal turbidity in shallow bays', full_name: 'R. Okonkwo', affiliation: 'Coastal Institute'},
-    ],
-    ms: 96,
-  }}
-  caption="One author, two papers. The edge resolved both mentions to the same node."
-/>
-
-## Search
-
-Two ways in, for two different questions.
-
-**`SEARCH(...)` as a table**, when the ranked documents *are* the answer:
-
-```sql
-SELECT s.doc_id, s.snippet, s.score
-FROM SEARCH(default, 'tidal forcing', TOP 5) s
-ORDER BY s.score DESC;
-```
-
-**`MATCHES` as a predicate**, when you want *entity rows* whose source document
-matched. It is a semi-join, so your columns survive:
-
-```sql
-SELECT title, published_on
-FROM library.Paper p
-WHERE p MATCHES ('tidal forcing' USING default TOP 5);
-```
-
-Reach for `MATCHES` when the search is a filter and the entity is the answer.
-
-## Aggregation
-
-`COUNT`, `SUM`, `AVG`, `MIN`, `MAX` and `ARRAY_AGG`, with `GROUP BY` and
-`HAVING`.
-
-<Playground
-  query={`SELECT a.affiliation,
-       COUNT(*)      AS papers,
-       AVG(g.amount) AS avg_grant
-FROM library.Paper p
-JOIN library.Author a VIA p.written_by
-JOIN library.Grant  g USING (_doc)
-GROUP BY a.affiliation
-ORDER BY papers DESC;`}
-  result={{
-    columns: ['affiliation', 'papers', 'avg_grant'],
-    rows: [
-      {affiliation: 'Coastal Institute', papers: '12', avg_grant: '84200.00'},
-      {affiliation: 'Northern University', papers: '7', avg_grant: '61500.00'},
-      {affiliation: 'Harbour Research Unit', papers: '3', avg_grant: '39000.00'},
-    ],
-    ms: 118,
-  }}
-/>
-
-:::tip Aliasing aggregates in HAVING
-`HAVING` is parsed as an ordinary predicate, so `HAVING COUNT(*) > 2` does not
-parse. Alias the aggregate and filter on the alias:
-`SELECT …, COUNT(*) AS n … HAVING n > 2`.
+:::note
+Every example on this page is parsed by the SerchaQL engine in a test, and every refused form is checked to still be refused. Agents get the same reference from `describe serchaql`.
 :::
 
-## Window functions
+## Query clauses
 
-`ROW_NUMBER()`, `RANK()` and `DENSE_RANK()`, all requiring `OVER`, plus
-aggregates used as window functions:
+Everything below works. Where a form has a limit, the limit is stated.
+
+**Filtering and shaping**: `WHERE` with `AND`, `OR`, `NOT`, `IN (list)`,
+`IN (subquery)`, `NOT IN`, `EXISTS`, `BETWEEN`, `IS [NOT] NULL`, `LIKE`,
+`NOT LIKE`, `ILIKE` (backslash is the escape character); `CASE WHEN`;
+`CAST(x AS type)` and `x::type`; `||` concatenation; arithmetic anywhere,
+including dividing one aggregate by another.
 
 ```sql
-SELECT title, affiliation,
-       RANK() OVER (PARTITION BY affiliation ORDER BY published_on DESC) AS recency
-FROM library.Paper p
-JOIN library.Author a VIA p.written_by;
+SELECT o.key, o.amount * 1.1 AS with_tax
+FROM Order o
+WHERE o.status IN ('open', 'held') AND o.title ILIKE '%refund%' AND o.closed_at IS NULL
 ```
 
-## CTEs and set operations
+**Grouping**: `GROUP BY` (columns, expressions or positions), `HAVING` on an
+aggregate or its alias, `DISTINCT`, `COUNT(DISTINCT x)`.
 
 ```sql
-WITH recent AS (
-  SELECT _doc, title FROM library.Paper WHERE published_on >= DATE '2025-01-01'
+SELECT o.status, COUNT(*) AS n, COUNT(DISTINCT o.customer) AS customers, SUM(o.amount) / COUNT(*) AS average
+FROM Order o
+GROUP BY o.status
+HAVING COUNT(*) > 5
+ORDER BY n DESC NULLS LAST
+LIMIT 10 OFFSET 0
+```
+
+**Ordering and paging**: `ORDER BY` a column, an alias, a position or a
+column not selected, `ASC`/`DESC`, `NULLS FIRST`/`NULLS LAST`; `LIMIT`,
+`OFFSET`, `FETCH FIRST n ROWS ONLY`.
+
+**Joins**: `JOIN` and `LEFT JOIN`. `ON` takes column equalities only
+(`a.x = b.y`, joined by `AND`); compute anything else in a subquery first and
+join on its output column. `USING (col)` also works. A join of a CTE, a
+subquery or a view works the same way.
+
+```sql
+SELECT o.key, n.norm_name
+FROM Order o
+JOIN (SELECT c.key AS key, LOWER(TRIM(c.name)) AS norm_name FROM Customer c) n ON n.key = o.customer
+```
+
+**Subqueries and derived tables**: anywhere a table goes, and in `IN (...)`
+and `EXISTS (...)`.
+
+**Set operations**: `UNION`, `UNION ALL`, `INTERSECT`, `EXCEPT`. Output
+column names come from the first branch.
+
+**Common table expressions**: `WITH name AS (SELECT ...)`. Each CTE is
+computed once per statement and a CTE nothing reads is skipped, so naming a
+shared step is free. A CTE whose body is itself a `UNION` must wrap the union
+in a derived table:
+
+```sql
+WITH everyone AS (
+  SELECT u.k FROM (
+    SELECT c.key AS k FROM Customer c
+    UNION ALL
+    SELECT s.key AS k FROM Supplier s
+  ) u
 )
-SELECT title FROM recent;
+SELECT e.k FROM everyone e
 ```
 
-`WITH RECURSIVE` is supported for walking hierarchies. Set operations
-(`UNION [ALL]`, `INTERSECT`, `EXCEPT`) are left-associative, and are **not**
-allowed inside a CTE body.
-
-## Generated columns
-
-`GENERATE` runs an LLM per row as a projection. The template interpolates
-columns, and an `AS` alias is required:
+`WITH RECURSIVE` is for real recursion only (walking a parent chain):
 
 ```sql
-SELECT title,
-       GENERATE('One sentence on why {title} matters to coastal planners') AS relevance
-FROM library.Paper
-LIMIT 5;
+WITH RECURSIVE chain AS (
+  SELECT t.key AS key, t.parent AS parent, 1 AS depth FROM Team t WHERE t.key = 'platform'
+  UNION ALL
+  SELECT p.key, p.parent, c.depth + 1 FROM Team p JOIN chain c ON p.key = c.parent
+)
+SELECT chain.key, chain.depth FROM chain
 ```
 
-An optional second argument feeds a subquery's rows to the model as context.
-
-## External data
-
-`plugins.<operation>` is a virtual table backed by an external API. Join it
-like any other source:
+**Window functions**: `ROW_NUMBER`, `RANK`, `DENSE_RANK`, `NTILE`,
+`PERCENT_RANK`, `CUME_DIST`, `LAG`, `LEAD` (with offset and default),
+`FIRST_VALUE`, `LAST_VALUE`, `NTH_VALUE`, and `SUM`/`AVG`/`COUNT`/`MIN`/`MAX`
+over a window. `PARTITION BY`, `ORDER BY`, `ROWS BETWEEN ... AND ...` and
+`RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`. Window functions work
+inside expressions. To filter on one, compute it in a derived table and
+filter outside:
 
 ```sql
-SELECT c.cited_title, x.identifier, x.year
-FROM library.Citation c
-LEFT JOIN plugins.registry_lookup x ON x.query = c.cited_title;
+SELECT r.customer, r.key, r.amount
+FROM (
+  SELECT o.customer AS customer, o.key AS key, o.amount AS amount,
+         ROW_NUMBER() OVER (PARTITION BY o.customer ORDER BY o.amount DESC) AS rn
+  FROM Order o
+) r
+WHERE r.rn = 1
 ```
-
-Every declared input column must be bound, by a join condition or a literal in
-`WHERE`. Results are cached. If a query would exceed the operation's soft call
-limit, the API returns **202** with an estimate; re-send with `"confirm": true`
-to proceed.
-
-## Permissions {#permissions}
-
-Three checks, composed with AND, all fail-closed:
-
-1. **Corpus grant**: `SELECT` on the corpus
-2. **Corpus membership**: the documents in the corpus
-3. **Per-document ACL**: intersected with layer 2
-
-The result is pushed into the scan. Deny-all short-circuits before touching
-storage. `EXPLAIN` shows all three named in the plan.
-
-## Explaining a query
 
 ```sql
-EXPLAIN SELECT title FROM library.Paper LIMIT 5;
-EXPLAIN ANALYZE SELECT ...;
+SELECT o.key, o.amount - LAG(o.amount) OVER (ORDER BY o.placed_at) AS change,
+       SUM(o.amount) OVER (ORDER BY o.placed_at ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS last_seven
+FROM Order o
 ```
 
-`stats.op_stats` is returned on **every** query, with rows in/out and elapsed
-time per operator, so you do not need `EXPLAIN ANALYZE` to profile.
+**Comments**: `-- line` and `/* block */`.
 
-## Not available
+## Functions
 
-`INSERT` / `UPDATE` / `DELETE`: data arrives by extraction, not by statement.
-No transactions. No backend configuration through SQL. `RESOLVE SEMANTIC`,
-`SEMANTIC JOIN`, `EMBED` and `CREATE SNAPSHOT` are reserved and rejected.
+**Text**: `lower`, `upper`, `initcap`, `trim`, `btrim`, `ltrim`, `rtrim`,
+`length`, `char_length`, `substring`, `substr`, `left`, `right`, `replace`,
+`reverse`, `lpad`, `rpad`, `concat`, `concat_ws`, `strpos`, `position`,
+`starts_with`, `split_part`, `regexp_replace`, `regexp_like`,
+`regexp_split_to_table`, `string_to_table`.
+
+**Numbers**: `abs`, `round`, `ceil`, `ceiling`, `floor`, `trunc`, `sign`,
+`mod`, `power`, `pow`, `sqrt`, `greatest`, `least`.
+
+**Nulls**: `coalesce`, `nullif`.
+
+**Dates**: `current_date`, `date_trunc`, `date_part`,
+`extract(field FROM x)` (including `extract(epoch FROM x)` for seconds, which
+is how you do date arithmetic).
+
+**Types for CAST**: `integer`, `bigint`, `numeric`, `float`, `double`,
+`text`, `varchar`, `boolean`, `date`, `timestamp`.
+
+**Aggregates**: `count`, `sum`, `avg`, `min`, `max`, `string_agg`,
+`array_agg`. `DISTINCT` inside an aggregate works for `count`.
+
+```sql
+SELECT split_part(t.path, '/', 1) AS top_folder,
+       COUNT(*) AS files,
+       string_agg(t.owner, ', ') AS owners,
+       MAX(extract(epoch FROM t.updated_at)) - MIN(extract(epoch FROM t.updated_at)) AS span_seconds
+FROM tables.drive.file t
+WHERE regexp_like(t.path, '^finance/') AND strpos(t.name, '.xlsx') > 0
+GROUP BY split_part(t.path, '/', 1)
+```
+
+Spellings from other dialects are refused with the spelling to use instead:
+`now()` (use `current_date`), `to_char`, `to_date`, `to_timestamp`,
+`to_number` (use `CAST`), `ifnull`, `nvl`, `isnull` (use `coalesce`), `iif`,
+`if` (use `CASE WHEN`), `len` (use `length`), `datediff`, `date_diff`, `age`
+(subtract `extract(epoch ...)` values), `regexp_matches` (use `regexp_like`),
+`array_length`, `unnest`.
+
+## Refused forms and what to write instead
+
+The engine refuses each of these with a message that names the rewrite.
+
+| Refused | Write instead |
+|---|---|
+| `RIGHT JOIN`, `FULL JOIN`, `CROSS JOIN`, `NATURAL JOIN` | Swap the sides of a `LEFT JOIN`; for a cross join, join two derived tables on a constant column |
+| An expression in `ON` | Compute it in a subquery and join on the result column |
+| `DISTINCT ON (...)` | `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)` in a derived table, keep `rn = 1` |
+| `INTERVAL '1 day'` | Compare dates directly, or subtract `extract(epoch FROM ...)` values |
+| `SELECT` without `FROM` | Select from a table |
+| `regexp_extract`, `regexp_matches` | `split_part`, `regexp_replace`, `regexp_like` |
+| `IS DISTINCT FROM` | `coalesce` both sides and compare |
+| `SIMILAR TO`, `LIKE ... ESCAPE` | `LIKE`/`ILIKE` (backslash already escapes) or `regexp_like` |
+| `t.*` | Name the columns (`SELECT *` from one table works) |
+| `ORDER BY` or `FILTER` inside an aggregate, `WITHIN GROUP` | A derived table that orders or filters first |
+| A named `WINDOW`, `IGNORE NULLS`, `GROUPS` frames, `RANGE` with a numeric offset | Repeat the `OVER (...)`; filter nulls in a derived table; use `ROWS` |
+| A window function in `WHERE`, or an aggregate in a window's `ORDER BY` | Compute it in a derived table, filter or order outside |
+| A `UNION` directly as a CTE body | Wrap it: `WITH x AS (SELECT u.a FROM (... UNION ALL ...) u)` |
+| `stddev`, `variance`, `median`, `percentile_cont`, `mode`, `bool_and`, `json_agg` | `stddev` from `SUM(x)`, `SUM(x * x)` and `COUNT(x)`; the others are not available |
+
+```sql
+-- Refused by the engine
+SELECT a.x FROM c.E a RIGHT JOIN c.F b ON a.x = b.x
+```
+
+```sql
+-- Refused by the engine
+SELECT a.x FROM c.E a JOIN c.F b ON a.x = lower(b.x)
+```
+
+```sql
+-- Refused by the engine
+SELECT DISTINCT ON (a.x) a.x FROM c.E a
+```
+
+```sql
+-- Refused by the engine
+SELECT a.x FROM c.E a WHERE a.t > current_date - INTERVAL '7 days'
+```
+
+```sql
+-- Refused by the engine
+SELECT 1
+```
+
+```sql
+-- Refused by the engine
+SELECT regexp_extract(a.x, '[0-9]+') FROM c.E a
+```
+
+```sql
+-- Refused by the engine
+SELECT now() FROM c.E a
+```
+
+```sql
+-- Refused by the engine
+WITH u AS (SELECT a.x FROM c.E a UNION ALL SELECT b.x FROM c.F b) SELECT u.x FROM u
+```
+
+```sql
+-- Refused by the engine
+SELECT stddev(a.x) FROM c.E a
+```
+
+```sql
+-- Refused by the engine
+SELECT a.x FROM c.E a WHERE ROW_NUMBER() OVER (ORDER BY a.x) = 1
+```
+
+## Looking around (read-only)
+
+| Statement | Answers |
+|---|---|
+| `SHOW MODEL` / `SHOW MODEL STATS` / `SHOW MODEL COVERAGE` | The entities and relations, their row counts, which tables the model covers |
+| `SHOW LINKS OF <Entity> '<key>'` | Everything one instance is linked to |
+| `SHOW LINEAGE OF <Entity> '<key>'` | The rows it was made from (`DOWN`/`UP` for direction) |
+| `SHOW RAW '<_source_key>'` | The source item a row came from, as it landed |
+| `SHOW RECORDS LIKE '<text>'` | Instances whose name or key matches |
+| `SHOW CORPUSES`, `SHOW ENTITIES`, `SHOW DATASETS`, `SHOW TABLES`, `SHOW VIEWS`, `SHOW MATERIALIZED VIEWS`, `SHOW TOOLS`, `SHOW EDGES`, `SHOW ONTOLOGIES`, `SHOW BINDINGS`, `SHOW STRUCTURES` | What exists |
+| `DESCRIBE <name>`, `DESCRIBE TOOL <name>`, `DESCRIBE EDGE <name>` | One object's definition and columns |
+| `EXPLAIN [ANALYZE] SELECT ...` | The plan, and with `ANALYZE` the rows and time per step |
+
+```sql
+SHOW LINKS OF Customer 'acme' LIMIT 50
+```
+
+```sql
+SHOW LINEAGE OF Order 'PO-1001' DOWN
+```

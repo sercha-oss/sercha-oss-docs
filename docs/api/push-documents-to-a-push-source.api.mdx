@@ -1,0 +1,71 @@
+---
+id: push-documents-to-a-push-source
+title: "Push documents to a push source"
+description: "Accepts one or more documents for a push-provider source (see POST /sources with provider_type=push) and enqueues each for ingest through the same index/claim/extract path a pulled document takes. Returns 202 Accepted: the document rows exist and their raw bytes are retained, but nothing has been normalised, indexed or extracted yet. Poll GET /api/v1/documents/{id} and read ingest_status ('processing' / 'indexed' / 'failed') to find out when a document became searchable. Re-pushing the same external_id is idempotent and returns the same document_id. Admin only - see the RequireAdmin wiring at setupRoutes for why a pushing service's m2m token must resolve to a users row with Role=admin. Bytes travel base64-encoded in JSON; see the doc comment body below for why that was chosen over multipart/form-data. Body limited to pushDocumentMaxBodyBytes (larger than the default 10 MiB, since base64 inflates size by roughly a third)."
+sidebar_label: "Push documents to a push source"
+hide_title: true
+hide_table_of_contents: true
+api: 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
+sidebar_class_name: "post api-method"
+info_path: api//sercha-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Push documents to a push source"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/sources/{id}/documents"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Accepts one or more documents for a push-provider source (see POST /sources with provider_type=push) and enqueues each for ingest through the same index/claim/extract path a pulled document takes. Returns 202 Accepted: the document rows exist and their raw bytes are retained, but nothing has been normalised, indexed or extracted yet. Poll GET /api/v1/documents/\{id\} and read ingest_status ("processing" / "indexed" / "failed") to find out when a document became searchable. Re-pushing the same external_id is idempotent and returns the same document_id. Admin only - see the RequireAdmin wiring at setupRoutes for why a pushing service's m2m token must resolve to a users row with Role=admin. Bytes travel base64-encoded in JSON; see the doc comment body below for why that was chosen over multipart/form-data. Body limited to pushDocumentMaxBodyBytes (larger than the default 10 MiB, since base64 inflates size by roughly a third).
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"Source ID","name":"id","in":"path","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"description":"Request body for pushing one or more documents to a push source","type":"object","properties":{"documents":{"description":"Documents is one or more documents to ingest in this call.","type":"array","items":{"description":"One document to push into a push source","type":"object","properties":{"content":{"description":"Content is the document's raw bytes, base64-encoded. See\nhandlePushDocuments' doc comment for why base64-in-JSON was chosen\nover multipart/form-data.","type":"string"},"external_id":{"description":"ExternalID identifies this document within the source and is\ncaller-controlled. Re-pushing the same ExternalID updates the\nexisting document rather than creating a duplicate.","type":"string"},"group":{"description":"Group is the document's partition key on a group-partitioned corpus:\nthe client, entity or fund it belongs to.\n\nREQUIRED when a claiming corpus declares PARTITION BY GROUP. A push\nsource has one root container and no hierarchy, so a pushed document\nderives no folder segments and would otherwise key to the empty string,\nwhich means \"visible to every partition\". There is no safe default, so\nan ungrouped document is rejected rather than filed arbitrarily.\n\nRejected when no claiming corpus is group-partitioned, so a caller\nsending a group to a folder-partitioned corpus learns it is not\npartitioning the way they think rather than having it silently ignored.\nEnforced in resolveGroupKeys, not here: only the service knows which\ncorpora end up claiming the document.\n\nStored with the document even when no corpus claims it yet, so a\ngroup-partitioned corpus created later claims it under this group\nrather than finding it ungrouped. Validated at accept for that reason.","type":"string"},"metadata":{"description":"Metadata is optional connector-agnostic key/value metadata.","type":"object","additionalProperties":{"type":"string"}},"mime_type":{"description":"MimeType drives normaliser dispatch (PDF, DOCX, XLSX, PPTX, HTML,\nMarkdown, plain text, ...). Required: without it the normaliser\nregistry has nothing to key off.","type":"string"},"path":{"description":"Path is an optional display path or URL for the document.","type":"string"},"title":{"description":"Title is the document's display title.","type":"string"}}}},"mode":{"description":"Mode is the caller's explicit choice between per-document immediate\nextraction (\"single\") and one accumulated extraction run spanning the\nwhole request (\"batch\"). Required, and deliberately not inferred from\nlen(documents): a caller pushing exactly one document from a poll\ncycle that will send more shortly may still want \"batch\" semantics,\nand a caller forwarding many latency-sensitive events one at a time\nmay still want \"single\" semantics for each. See driving.IngestMode's\ndoc comment for the full reasoning.","type":"string"}}}}},"description":"Documents to push","required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"202":{"description":"Accepted","content":{"application/json":{"schema":{"description":"Response body listing the per-document outcome of a push request","type":"object","properties":{"results":{"type":"array","items":{"description":"Per-document outcome of a push request","type":"object","properties":{"document_id":{"type":"string"},"error":{"type":"string"},"external_id":{"type":"string"},"status":{"description":"Status is the document's ingest status at the moment the push\nreturned, which for an accepted document is always \"processing\" -\nthe bytes are retained and a sync of the source is queued to read\nthem, but nothing has been normalised, indexed or extracted yet.\n\nThis field is the honest half of the contract change described on\nhandlePushDocuments: a document_id no longer means \"searchable now\",\nit means \"accepted, ask later\". Poll GET /api/v1/documents/{id} and\nread ingest_status to find out when that changed.\n\nEmpty on a result that failed before acceptance, where there is no\ndocument to have a status.","type":"string"}}}}}}}}},"400":{"description":"Invalid request, unsupported mode, non-push source, or missing push root container","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"401":{"description":"Unauthorized","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"403":{"description":"Forbidden - admin only","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"404":{"description":"Source not found","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"413":{"description":"Request body too large","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"500":{"description":"Internal server error","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"503":{"description":"Task queue not configured, or document retention disabled","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

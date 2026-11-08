@@ -1,0 +1,3025 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Sercha API",
+    "version": "1.0",
+    "description": "The public Sercha API. Every request runs as the caller and sees only what the caller is granted."
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "BearerAuth": {
+      "description": "JWT Bearer token. Format: \"Bearer {token}\"",
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Get a token. Service accounts use the OAuth client_credentials grant; send the token as Authorization: Bearer."
+    },
+    {
+      "name": "Query",
+      "description": "Run SerchaQL. See the SerchaQL pages for the language."
+    },
+    {
+      "name": "Tools",
+      "description": "Saved queries with typed parameters, called by name."
+    },
+    {
+      "name": "Catalogue",
+      "description": "What you can read."
+    },
+    {
+      "name": "Exports",
+      "description": "Hand a large result on as CSV or Parquet files."
+    },
+    {
+      "name": "Sources",
+      "description": "Connected systems, their syncs, and documents pushed to a push source."
+    },
+    {
+      "name": "Documents",
+      "description": "One document and its original bytes."
+    }
+  ],
+  "paths": {
+    "/oauth/token": {
+      "post": {
+        "description": "OAuth 2.0 token endpoint. A service account uses grant_type=client_credentials with its client_id and client_secret; an interactive client exchanges an authorization code (with PKCE code_verifier) or a refresh_token. Send the returned access_token as a Bearer token.",
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get an access token",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "client_credentials, authorization_code or refresh_token",
+            "name": "grant_type",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Client id",
+            "name": "client_id",
+            "in": "formData",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "Client secret (confidential clients)",
+            "name": "client_secret",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Space-separated scopes",
+            "name": "scope",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Authorization code",
+            "name": "code",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Redirect URI used for the code",
+            "name": "redirect_uri",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "PKCE verifier",
+            "name": "code_verifier",
+            "in": "formData"
+          },
+          {
+            "type": "string",
+            "description": "Refresh token",
+            "name": "refresh_token",
+            "in": "formData"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/TokenResponse"
+            }
+          },
+          "400": {
+            "description": "OAuth error: invalid_request, invalid_grant, unsupported_grant_type",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "invalid_client",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Authenticate with email and password to receive a JWT token",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User login",
+        "parameters": [
+          {
+            "description": "Login credentials",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Invalid credentials or account disabled",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "Exchange a refresh token for a new JWT token",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Refresh token",
+        "parameters": [
+          {
+            "description": "Refresh token",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RefreshRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Invalid refresh token",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Get the currently authenticated user's profile",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get current user",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/UserSummary"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/query": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Runs one SerchaQL statement or script as the caller. A SELECT returns rows; SHOW and DESCRIBE return their listings; DDL needs an admin. describe serchaql (MCP) or the SerchaQL reference lists what the language accepts. With ?explain=true the plan is returned instead of rows.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Query"
+        ],
+        "summary": "Run SerchaQL",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "Return the plan without running",
+            "name": "explain",
+            "in": "query"
+          },
+          {
+            "description": "The statement: serchaql text, or ir",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/QueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/QueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid statement or body",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Statement needs admin",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tools": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Saved queries with typed parameters (CREATE TOOL), with each one's description, parameters and an example call.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Tools"
+        ],
+        "summary": "List saved tools",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/ToolResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tools/{name}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Get a saved tool",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Tool name",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ToolResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "No such tool",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tools/{name}/call": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Runs the tool's query with args bound to its parameters (defaults fill the rest). The response is the query response plus the tool name and the statement that ran.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Tools"
+        ],
+        "summary": "Call a saved tool",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Tool name",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Arguments by parameter name",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ToolCallRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ToolCallResponse"
+            }
+          },
+          "400": {
+            "description": "Bad arguments",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "No such tool",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalogue/corpuses": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "The corpora the caller can read, by id and name.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "List corpora",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalogue/corpuses/{name}": {
+      "get": {
+        "description": "Returns everything an admin needs to see about one corpus in a single screen: its sources, bound ontology (the PINNED version snapshot when the binding has one, otherwise the live draft), every entity's full extraction context, edges, structures, hints, attached datasets, the views that read it, and the full SerchaQL DDL that recreates it.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "Get the catalogue corpus hub detail for one corpus",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Corpus name",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/CorpusDetail"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{table}/meanings": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "The labels and descriptions readers see for a dataset table and its visible columns, with the layers they come from (tenant overlay, connector pack, table catalogue) and, for a connector table, its origin. Columns a connector pack hides are not listed. A missing, internal or not-enabled connector table is 404 (admin only)",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Catalogue"
+        ],
+        "summary": "Get a dataset table's meanings",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Dataset table name, with or without the data. prefix",
+            "name": "table",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DatasetMeanings"
+            }
+          },
+          "400": {
+            "description": "Invalid table name",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin only",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "No such dataset table",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exports": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Runs one read-only SELECT as the caller and writes the whole result to object storage: through the dataset engine (CSV or Parquet, no row cap) when the query reads `data.<table>` datasets alone, else through the query engine as CSV parts under the server's row cap. Returns the export (202 while running; 200 when it finished within wait_seconds) with presigned download links once it has succeeded.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Exports"
+        ],
+        "summary": "Start a large export",
+        "parameters": [
+          {
+            "description": "The SELECT, format and optional cap",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/StartExportRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "503": {
+            "description": "Exports are not configured",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exports/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "The caller's export: its status and, once it has succeeded, presigned GET links for every file and the metadata sidecar (signed on each call, valid for at most an hour). wait_seconds (max 60) waits for a running export. Another user's export is a 404.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Exports"
+        ],
+        "summary": "Get an export",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Export ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "Wait up to this long for a running export",
+            "name": "wait_seconds",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "503": {
+            "description": "Exports are not configured",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sources": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Get a list of all configured data sources with sync status",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "List sources",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceSummary"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Create a new data source (admin only)",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Create source",
+        "parameters": [
+          {
+            "description": "Source configuration",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateSourceRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/DomainSource"
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin only",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Source already exists",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Get a data source by ID",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Get source",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DomainSource"
+            }
+          },
+          "400": {
+            "description": "Missing source ID",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Delete a data source by ID (admin only). This also removes all indexed documents from this source.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Delete source",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/StatusResponse"
+            }
+          },
+          "400": {
+            "description": "Missing source ID",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin only",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "409": {
+            "description": "Source in use by one or more corpuses",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/sync": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Trigger a sync operation for a specific source (admin only)",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Trigger sync",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "schema": {
+              "$ref": "#/definitions/SyncAcceptedResponse"
+            }
+          },
+          "400": {
+            "description": "Missing source ID",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin only",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Get the current sync state and statistics for a specific source. Returns the last sync time, status, and document/chunk counts from the most recent sync operation.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Get sync state for source",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/SyncState"
+            }
+          },
+          "400": {
+            "description": "Missing source ID",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin only",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/sync/cancel": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Cancels an in-flight sync for a source. Stops the running sync's\nwork and marks its state as cancelled. No-op if no sync is running.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Cancel a sync",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}/documents": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Accepts one or more documents for a push-provider source (see POST /sources with provider_type=push) and enqueues each for ingest through the same index/claim/extract path a pulled document takes. Returns 202 Accepted: the document rows exist and their raw bytes are retained, but nothing has been normalised, indexed or extracted yet. Poll GET /api/v1/documents/{id} and read ingest_status (\"processing\" / \"indexed\" / \"failed\") to find out when a document became searchable. Re-pushing the same external_id is idempotent and returns the same document_id. Admin only - see the RequireAdmin wiring at setupRoutes for why a pushing service's m2m token must resolve to a users row with Role=admin. Bytes travel base64-encoded in JSON; see the doc comment body below for why that was chosen over multipart/form-data. Body limited to pushDocumentMaxBodyBytes (larger than the default 10 MiB, since base64 inflates size by roughly a third).",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "Push documents to a push source",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Documents to push",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PushDocumentsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "schema": {
+              "$ref": "#/definitions/PushDocumentsResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request, unsupported mode, non-push source, or missing push root container",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin only",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "Request body too large",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "503": {
+            "description": "Task queue not configured, or document retention disabled",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Get all documents indexed from a specific source with pagination support. Optionally filter to a subset of containers via the container_ids query parameter (comma-separated).",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Sources"
+        ],
+        "summary": "List source documents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Source ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "Maximum number of documents to return (default 20, max 100)",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "Number of documents to skip (default 0)",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Comma-separated container IDs to filter by (omit for all containers)",
+            "name": "container_ids",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/SourceDocumentsResponse"
+            }
+          },
+          "400": {
+            "description": "Missing source ID or invalid parameters",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Get document metadata by ID",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get document",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Document ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/Document"
+            }
+          },
+          "400": {
+            "description": "Missing document ID",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{id}/content": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/octet-stream"
+        ],
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Get a document's original bytes",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Document ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "file"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "404": {
+            "description": "No such document, or its bytes are not retained",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "BlobRetentionStatus": {
+      "type": "string",
+      "enum": [
+        "",
+        "stored",
+        "failed"
+      ],
+      "x-enum-varnames": [
+        "BlobRetentionUnset",
+        "BlobRetentionStored",
+        "BlobRetentionFailed"
+      ]
+    },
+    "Container": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "Document": {
+      "type": "object",
+      "properties": {
+        "blob_retention_status": {
+          "description": "BlobRetentionStatus records the outcome of the sync orchestrator's\nblob-store write for this document's raw bytes (SD-109). See\nBlobRetentionStatus's own doc comment for the three values. Defaults\nto BlobRetentionUnset (\"\") for every document written before this\nfield existed and for any document retention did not apply to.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BlobRetentionStatus"
+            }
+          ]
+        },
+        "container_id": {
+          "description": "ContainerID is the internal source_containers.id of the leaf container\nthis document belongs to. Its lifecycle has two phases:\n\n 1. Connector phase - a connector may initially populate this with a\n    provider-side reference (e.g. OneDrive parentReference.id), or leave\n    it empty. It also sets Change.ContainerProviderRef on the emitted\n    Change so the orchestrator knows the raw provider ref.\n\n 2. Orchestrator phase - before the membership-write step the sync\n    orchestrator resolves Change.ContainerProviderRef (or falls back to\n    this field if the connector set it directly) to an internal\n    source_containers row, lazily upserting intermediate rows as needed,\n    and overwrites this field with the resolved internal id.\n\nAdapters that read Document.ContainerID at runtime (postgres store, graph\nqueries, corpus membership checks, MCP tools) always see the internal id.\nEmpty string means \"no container scope\" or \"the connector does not\nsurface containers\".",
+          "type": "string"
+        },
+        "content_hash": {
+          "description": "ContentHash is the hex sha256 of the document's NORMALISED text - the\nsame digest the organise op's duplicate pre-pass keys on. Written at\ningest where the normalised text exists (Step 6c-ii of\nprocessAddOrUpdate); \"\" means not yet computed (pre-migration rows,\nor a normalisation that produced no text) and must be treated as\nunhashable, never as a hash: two \"\"s matching is not a duplicate.",
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "external_id": {
+          "description": "ID from the source system",
+          "type": "string"
+        },
+        "group": {
+          "description": "Group is the group a pushed document was sent with (the partition key\nunder PARTITION BY GROUP), recorded on the document itself so it\nsurvives whether or not a group-partitioned corpus claims the document\nyet. A corpus created later, and REPARTITION, derive their per-corpus\ndocument_groups rows from it. \"\" means pushed without a group, and is\nalways \"\" for a pulled document: connectors never supply one.",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "indexed_at": {
+          "type": "string"
+        },
+        "ingest_status": {
+          "description": "IngestStatus says whether this document is searchable yet (SD-109's\nasync push path). See IngestStatus's own doc comment for the three\nvalues and why the distinction had to exist.\n\nThe Go zero value is \"\" rather than IngestStatusIndexed, which does\nNOT mean a fourth state: it means a caller constructed a Document\nwithout an opinion, which every pull-sync path does. Normalised to\nIngestStatusIndexed by IngestStatusOrDefault, which the persistence\nadapters call on the way in, so the column keeps the same invariant\nthe migration's DEFAULT establishes and no row is ever written with an\nempty status.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/IngestStatus"
+            }
+          ]
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "mime_type": {
+          "type": "string"
+        },
+        "path": {
+          "description": "Path is the connector's chosen display path or URL for the document\n(often the web URL). Used for UI display and human-readable\nidentification.",
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "IngestStatus": {
+      "type": "string",
+      "enum": [
+        "processing",
+        "indexed",
+        "failed"
+      ],
+      "x-enum-varnames": [
+        "IngestStatusProcessing",
+        "IngestStatusIndexed",
+        "IngestStatusFailed"
+      ]
+    },
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "properties": {
+        "expires_at": {
+          "type": "string"
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/definitions/UserSummary"
+        }
+      }
+    },
+    "ProviderType": {
+      "type": "string",
+      "enum": [
+        "github",
+        "localfs",
+        "notion",
+        "onedrive",
+        "linear",
+        "git",
+        "push",
+        "table",
+        "plugin_http",
+        "microsoft-drives",
+        "salesforce",
+        "code",
+        "xero",
+        "web"
+      ],
+      "x-enum-varnames": [
+        "ProviderTypeGitHub",
+        "ProviderTypeLocalFS",
+        "ProviderTypeNotion",
+        "ProviderTypeOneDrive",
+        "ProviderTypeLinear",
+        "ProviderTypeGit",
+        "ProviderTypePush",
+        "ProviderTypeTable",
+        "ProviderTypePluginHTTP",
+        "ProviderTypeMicrosoftDrives",
+        "ProviderTypeSalesforce",
+        "ProviderTypeCode",
+        "ProviderTypeXero",
+        "ProviderTypeWeb"
+      ]
+    },
+    "RefreshRequest": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
+          "type": "string"
+        }
+      }
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "member",
+        "viewer"
+      ],
+      "x-enum-comments": {
+        "RoleAdmin": "Manage users, sources, settings",
+        "RoleMember": "Search, view documents",
+        "RoleViewer": "Search only (future)"
+      },
+      "x-enum-descriptions": [
+        "Manage users, sources, settings",
+        "Search, view documents",
+        "Search only (future)"
+      ],
+      "x-enum-varnames": [
+        "RoleAdmin",
+        "RoleMember",
+        "RoleViewer"
+      ]
+    },
+    "SeatType": {
+      "type": "string",
+      "enum": [
+        "app_user",
+        "member",
+        "admin"
+      ],
+      "x-enum-comments": {
+        "SeatAdmin": "the admin role: all four plus settings",
+        "SeatAppUser": "apps only",
+        "SeatMember": "all four entitlements"
+      },
+      "x-enum-descriptions": [
+        "apps only",
+        "all four entitlements",
+        "the admin role: all four plus settings"
+      ],
+      "x-enum-varnames": [
+        "SeatAppUser",
+        "SeatMember",
+        "SeatAdmin"
+      ]
+    },
+    "DomainSource": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/SourceConfig"
+        },
+        "connection_id": {
+          "description": "ConnectionID references the connector connection for authentication",
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "created_by": {
+          "description": "User ID of creator",
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "provider_type": {
+          "$ref": "#/definitions/ProviderType"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "SourceConfig": {
+      "type": "object",
+      "properties": {
+        "base_url": {
+          "type": "string"
+        },
+        "extra": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SourceSummary": {
+      "type": "object",
+      "properties": {
+        "connectors": {
+          "description": "Connectors are the connector packs whose tables this source lands\nrows in: its own first, then the ones it includes (a GitHub source\nalso lands git history). Empty for a source with no pack.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "document_count": {
+          "type": "integer"
+        },
+        "last_sync_at": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/definitions/DomainSource"
+        },
+        "sync_status": {
+          "type": "string"
+        }
+      }
+    },
+    "SyncState": {
+      "type": "object",
+      "properties": {
+        "completed_at": {
+          "type": "string"
+        },
+        "cursor": {
+          "description": "Pagination cursor for incremental sync",
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "last_sync_at": {
+          "type": "string"
+        },
+        "next_sync_at": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "stats": {
+          "$ref": "#/definitions/SyncStats"
+        },
+        "status": {
+          "$ref": "#/definitions/SyncStatus"
+        },
+        "warning": {
+          "description": "Warning surfaces a completed-but-suspicious sync (SD-123): the sync\nfinished cleanly yet enumerated zero documents while the source holds\nzero local documents. That combination is almost always a misconfigured\ncontainer ref or a stale delta cursor, never a healthy no-op, so it is\ncarried on the state payload rather than buried in a log line. Cleared\nat the start of every sync run.",
+          "type": "string"
+        }
+      }
+    },
+    "SyncStats": {
+      "type": "object",
+      "properties": {
+        "chunks_indexed": {
+          "type": "integer"
+        },
+        "documents_added": {
+          "type": "integer"
+        },
+        "documents_deleted": {
+          "type": "integer"
+        },
+        "documents_unchanged": {
+          "description": "DocumentsUnchanged counts changes whose stored document already had\nthe same content, title, path, type, container and metadata, so the\norchestrator skipped them before normalising, storing or extracting.",
+          "type": "integer"
+        },
+        "documents_updated": {
+          "type": "integer"
+        },
+        "errors": {
+          "type": "integer"
+        }
+      }
+    },
+    "SyncStatus": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "x-enum-varnames": [
+        "SyncStatusIdle",
+        "SyncStatusRunning",
+        "SyncStatusCompleted",
+        "SyncStatusFailed"
+      ]
+    },
+    "TokenResponse": {
+      "type": "object",
+      "properties": {
+        "access_token": {
+          "type": "string"
+        },
+        "expires_in": {
+          "description": "Seconds until expiration",
+          "type": "integer"
+        },
+        "refresh_token": {
+          "description": "Optional refresh token",
+          "type": "string"
+        },
+        "scope": {
+          "description": "Space-delimited scopes",
+          "type": "string"
+        },
+        "token_type": {
+          "description": "\"Bearer\"",
+          "type": "string"
+        }
+      }
+    },
+    "UserSummary": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "email": {
+          "type": "string"
+        },
+        "entitlements": {
+          "description": "Entitlements and SeatType (SD-160 v3) let the Team page show seats.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_login_at": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/definitions/Role"
+        },
+        "seat_type": {
+          "$ref": "#/definitions/SeatType"
+        }
+      }
+    },
+    "Binding": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EdgeDetail"
+          }
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EntityDetail"
+          }
+        },
+        "frozen_at": {
+          "type": "string"
+        },
+        "frozen_by": {
+          "type": "string"
+        },
+        "hints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BindingHint"
+          }
+        },
+        "ontology": {
+          "type": "string"
+        },
+        "ontology_id": {
+          "type": "string"
+        },
+        "pinned_version": {
+          "description": "PinnedVersion is the `\"v<n>\"` label of the pinned version, or \"\" when\nthe binding is unpinned (draft).",
+          "type": "string"
+        },
+        "pipeline_id": {
+          "type": "string"
+        },
+        "structures": {
+          "description": "Structures carries each declared entity.Structure marshalled as-is\n(name, levels, cleanup): the UI renders the structure tree directly\nfrom the domain shape rather than a bespoke projection.",
+          "type": "array",
+          "items": {}
+        },
+        "version_number": {
+          "description": "VersionNumber is the pinned version's number, or 0 for a draft.",
+          "type": "integer"
+        }
+      }
+    },
+    "BindingHint": {
+      "type": "object",
+      "properties": {
+        "hint": {
+          "type": "string"
+        },
+        "invocation_key": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "set_at": {
+          "type": "string"
+        },
+        "set_by": {
+          "type": "string"
+        },
+        "set_by_name": {
+          "description": "SetByName is the display name or email of SetBy when it resolves to a\nknown user; empty when it does not (a deleted user, a system write,\nor the user lookup is not wired).",
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "ContainerPath": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "container_id": {
+          "type": "string"
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Corpus": {
+      "type": "object",
+      "properties": {
+        "archived_at": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "partition": {
+          "$ref": "#/definitions/Partition"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "CorpusDetail": {
+      "type": "object",
+      "properties": {
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Binding"
+          }
+        },
+        "corpus": {
+          "$ref": "#/definitions/Corpus"
+        },
+        "datasets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ddl": {
+          "description": "DDL is the full SerchaQL script that recreates this corpus: ontology,\nentities with their EXTRACT/SENSITIVE annotations, structures, edges,\nthe corpus declaration, BIND/REBIND, every hint, attached datasets and\nviews. Rendered by serchaql.RenderCorpusDDL.",
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CorpushubSource"
+          }
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/View"
+          }
+        }
+      }
+    },
+    "EdgeDetail": {
+      "type": "object",
+      "properties": {
+        "cardinality": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "direction": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inverse_label": {
+          "type": "string"
+        },
+        "is_under": {
+          "description": "IsUnder marks an internal part_of edge that an UNDER modifier produced;\nthe DDL renders it as UNDER on the child entity, not as CREATE EDGE.",
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EdgeLink"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "EdgeLink": {
+      "type": "object",
+      "properties": {
+        "how_resolved": {
+          "type": "string"
+        },
+        "source_property": {
+          "type": "string"
+        },
+        "target_property": {
+          "type": "string"
+        },
+        "within": {
+          "type": "string"
+        }
+      }
+    },
+    "EntityDetail": {
+      "type": "object",
+      "properties": {
+        "bounded_per_doc": {
+          "type": "boolean"
+        },
+        "ddl": {
+          "description": "DDL is this entity's CREATE ENTITY statement plus its ALTER ENTITY\nstatements, rendered standalone.",
+          "type": "string"
+        },
+        "definition_text": {
+          "type": "string"
+        },
+        "description": {
+          "description": "Description is the entity's extraction-prompt description. Reported\n\"\" when the stored value is the internal \"__lazy__\" marker (see Lazy).",
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "example": {
+          "type": "string"
+        },
+        "extends_via_property": {
+          "type": "string"
+        },
+        "extract_per_child": {
+          "type": "boolean"
+        },
+        "group_name": {
+          "type": "string"
+        },
+        "hint_keys": {
+          "description": "HintKeys lists the invocation keys of the binding's hints that target\nthis entity `(extract_internals:<LocalID>` and, for an\nextract-per-child root, `extract_internals:<LocalID>.<Child>`).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_query_derived": {
+          "type": "boolean"
+        },
+        "is_root": {
+          "type": "boolean"
+        },
+        "lazy": {
+          "description": "Lazy is true when the entity's stored Description is the \"__lazy__\"\nconvention value.",
+          "type": "boolean"
+        },
+        "local_id": {
+          "type": "string"
+        },
+        "natural_key": {
+          "description": "NaturalKey is the ordered natural-key column list; empty when the\nentity declares none.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parent": {
+          "description": "Parent is the UNDER parent's local id, resolved from the internal\npart_of edge this entity's child sits on. Empty for a root or a free\nentity.",
+          "type": "string"
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PropertyDetail"
+          }
+        },
+        "singular_per_doc": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        },
+        "strict_json": {
+          "type": "boolean"
+        },
+        "target_corpus": {
+          "type": "string"
+        }
+      }
+    },
+    "Partition": {
+      "type": "object",
+      "properties": {
+        "group_field": {
+          "description": "GroupField is the field a document's group arrives in, under the\n\"group\" or \"group_structure\" strategies.",
+          "type": "string"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "strategy": {
+          "type": "string"
+        },
+        "structure": {
+          "description": "Structure is `\"<ontology>.<structure>\"` when the corpus organises by a\ndeclared STRUCTURE, under the \"structure\" or \"group_structure\"\nstrategies.",
+          "type": "string"
+        }
+      }
+    },
+    "PropertyDetail": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "display_order": {
+          "type": "integer"
+        },
+        "enum_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "generation_template": {
+          "description": "GenerationTemplate is set for a GENERATE-backed column; empty\notherwise.",
+          "type": "string"
+        },
+        "is_key": {
+          "type": "boolean"
+        },
+        "join_edge": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sensitive": {
+          "type": "boolean"
+        },
+        "source_entity": {
+          "type": "string"
+        },
+        "source_kind": {
+          "description": "SourceKind, SourceEntity, SourceProperty and JoinEdge describe a\nproperty copied or joined from elsewhere (extends-via, pack entity\ninjection); empty when the property is extracted directly.",
+          "type": "string"
+        },
+        "source_property": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "CorpushubSource": {
+      "type": "object",
+      "properties": {
+        "connector": {
+          "description": "Connector is the provider type as written in CREATE CORPUS ON, e.g.\n\"onedrive\" or \"push\": the executor matches a target's connector\nagainst the provider type, so this is what the DDL must carry.",
+          "type": "string"
+        },
+        "connector_label": {
+          "description": "ConnectorLabel is the provider's display name for people, e.g.\n\"OneDrive\" or \"Pushed documents\".",
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerPath"
+          }
+        },
+        "push": {
+          "type": "boolean"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "source_name": {
+          "type": "string"
+        }
+      }
+    },
+    "View": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "definition": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "description": "\"view\" | \"materialized_view\"",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "reads": {
+          "description": "Reads lists every corpus and view name the body reads, at any depth\n(the same walk serchaql's dataset_acl.go bodyReadable uses).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Engine": {
+      "type": "string",
+      "enum": [
+        "dataset",
+        "query"
+      ],
+      "x-enum-varnames": [
+        "EngineDataset",
+        "EngineQuery"
+      ]
+    },
+    "File": {
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "description": "Bytes is the object's size.",
+          "type": "integer"
+        },
+        "key": {
+          "description": "Key is the full object key in the export bucket.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name is the object's name within the export (its key relative to the\nexport's data prefix).",
+          "type": "string"
+        },
+        "url": {
+          "description": "URL is a presigned GET for the object, filled when a status is read,\nnever stored.",
+          "type": "string"
+        }
+      }
+    },
+    "Format": {
+      "type": "string",
+      "enum": [
+        "csv",
+        "parquet"
+      ],
+      "x-enum-varnames": [
+        "FormatCSV",
+        "FormatParquet"
+      ]
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "description": "Bytes is the total size of the data files.",
+          "type": "integer"
+        },
+        "bytes_scanned": {
+          "description": "BytesScanned is what the dataset engine read, when it ran the query.",
+          "type": "integer"
+        },
+        "column_policy": {
+          "description": "ColumnPolicy is the fingerprint of the AI product column policy the\nexport ran under (SD-193); empty for an unrestricted caller. A\nrestricted caller reads only exports made under its own policy, so a\nproduct cannot fetch files its owner exported with full access.",
+          "type": "string"
+        },
+        "columns": {
+          "description": "Columns is the columns block (what each output column means), as the\nquery and export tools return it.",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "completed_at": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "engine": {
+          "$ref": "#/definitions/Engine"
+        },
+        "error": {
+          "type": "string"
+        },
+        "executed_query": {
+          "type": "string"
+        },
+        "expires_at": {
+          "description": "ExpiresAt is when the URLs handed out by this read stop working.",
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/File"
+          }
+        },
+        "format": {
+          "$ref": "#/definitions/Format"
+        },
+        "id": {
+          "type": "string"
+        },
+        "note": {
+          "description": "Note explains a fallback or a cap in plain words.",
+          "type": "string"
+        },
+        "owner_id": {
+          "type": "string"
+        },
+        "query": {
+          "description": "Query is the SELECT as submitted; ExecutedQuery is what ran, with any\nrow cap applied.",
+          "type": "string"
+        },
+        "row_cap": {
+          "description": "RowCap is the cap applied, 0 for none.",
+          "type": "integer"
+        },
+        "row_count": {
+          "description": "RowCount is the number of rows written.",
+          "type": "integer"
+        },
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ColumnSchema"
+          }
+        },
+        "sidecar": {
+          "description": "Sidecar is the metadata file written beside the data (query, schema,\ncolumns), with its presigned URL filled per read.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/File"
+            }
+          ]
+        },
+        "source_tables": {
+          "description": "SourceTables are the dataset tables the query read, directly or\nthrough views, recorded when the export starts. Every status read\nand file read checks them against the connector lock again, so files\nwritten while a connector was enabled are not served once it is not.\nAbsent from a manifest written before they were recorded (and from\none whose query reads no dataset table); the query text is then read\nfor them instead.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/Status"
+        },
+        "truncated": {
+          "description": "Truncated is true when the cap cut the result.",
+          "type": "boolean"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      }
+    },
+    "Status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "succeeded",
+        "failed"
+      ],
+      "x-enum-varnames": [
+        "StatusRunning",
+        "StatusSucceeded",
+        "StatusFailed"
+      ]
+    },
+    "ColumnSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name is the column identifier as it appears in the result set, e.g.\n\"clause_id\", \"severity_level\", \"is_root\". Must be non-empty.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Type is the value kind for this column. Consumers read the matching\nfield on [TypedValue] based on this discriminator.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ColumnType"
+            }
+          ]
+        }
+      }
+    },
+    "ColumnType": {
+      "type": "string",
+      "enum": [
+        "string",
+        "integer",
+        "boolean",
+        "enum",
+        "float",
+        "date",
+        "timestamp",
+        "relation"
+      ],
+      "x-enum-varnames": [
+        "ColumnTypeString",
+        "ColumnTypeInteger",
+        "ColumnTypeBoolean",
+        "ColumnTypeEnum",
+        "ColumnTypeFloat",
+        "ColumnTypeDate",
+        "ColumnTypeTimestamp",
+        "ColumnTypeRelation"
+      ]
+    },
+    "CreateSourceRequest": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/SourceConfig"
+        },
+        "connection_id": {
+          "type": "string"
+        },
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Container"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "provider_type": {
+          "$ref": "#/definitions/ProviderType"
+        }
+      }
+    },
+    "DatasetColumnMeanings": {
+      "type": "object",
+      "properties": {
+        "catalogue": {
+          "description": "Catalogue is the table catalogue's own comment, empty when none.",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "description": "Label, Description and Unit are what readers see.",
+          "type": "string"
+        },
+        "mime": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "overlay": {
+          "description": "Overlay is the tenant's entry, nil when it has none.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/DatasetMeaningText"
+            }
+          ]
+        },
+        "pack": {
+          "description": "Pack is the connector pack's entry, nil when the pack does not\ndescribe the column.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/DatasetMeaningText"
+            }
+          ]
+        },
+        "shape": {
+          "description": "Shape is the column's effective shape (overlay, else pack, else\nvalue) and TitleFrom and Mime its document rule when it is prose\nor file.",
+          "type": "string"
+        },
+        "shapes": {
+          "description": "Shapes lists the shapes the column accepts, value first; a column\nthat can only be a value lists just value.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "title_from": {
+          "type": "string"
+        },
+        "type": {
+          "description": "Type is the engine's own type string.",
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "DatasetMeaningOrigin": {
+      "type": "object",
+      "properties": {
+        "access_note": {
+          "description": "AccessNote says that access is granted in Sercha, not inherited from\nthe source system.",
+          "type": "string"
+        },
+        "connector": {
+          "description": "Connector is the connector id, for example \"salesforce\".",
+          "type": "string"
+        },
+        "label": {
+          "description": "Label is the source system's name, for example \"Salesforce\".",
+          "type": "string"
+        }
+      }
+    },
+    "DatasetMeaningText": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "mime": {
+          "description": "Mime is the media type of a file column's documents (empty means\ndetect); prose documents are always text/plain.",
+          "type": "string"
+        },
+        "shape": {
+          "description": "Shape is the column's field shape: value, list, prose or file.\nEmpty on an overlay layer means the overlay leaves the shape alone.",
+          "type": "string"
+        },
+        "title_from": {
+          "description": "TitleFrom names the column that titles each document a prose or\nfile column derives.",
+          "type": "string"
+        },
+        "unit": {
+          "description": "Unit is set only on a pack column layer.",
+          "type": "string"
+        }
+      }
+    },
+    "DatasetMeanings": {
+      "type": "object",
+      "properties": {
+        "catalogue": {
+          "description": "Catalogue is the table catalogue's own description, empty when none.",
+          "type": "string"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DatasetColumnMeanings"
+          }
+        },
+        "dataset": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "description": "Label and Description are what readers see for the table.",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/definitions/DatasetMeaningOrigin"
+        },
+        "overlay": {
+          "description": "Overlay is the tenant's table entry, nil when it has none.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/DatasetMeaningText"
+            }
+          ]
+        },
+        "pack": {
+          "description": "Pack is the connector pack's table entry, nil for a table the pack\ndoes not declare.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/DatasetMeaningText"
+            }
+          ]
+        },
+        "table": {
+          "description": "Table is the bare table name; Dataset is the FROM form, `data.<table>`.",
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "updated_by": {
+          "description": "UpdatedBy and UpdatedAt describe the most recent overlay write for\nthe table; empty and nil when it has no overlay.",
+          "type": "string"
+        }
+      }
+    },
+    "QueryOpStat": {
+      "type": "object",
+      "properties": {
+        "bytes_scanned": {
+          "description": "BytesScanned is the data an external dataset engine read for this\noperator (dataset_scan only; the engine's billing unit). Zero elsewhere.",
+          "type": "integer"
+        },
+        "elapsed_ns": {
+          "description": "ElapsedNs is the wall-clock time spent in this operator in nanoseconds.",
+          "type": "integer"
+        },
+        "engine_query_id": {
+          "description": "EngineQueryID is the external engine's id for the query this operator\nran (dataset_scan only), for tracing it in the engine's console.",
+          "type": "string"
+        },
+        "operator_kind": {
+          "description": "OperatorKind is the operator type string, e.g. \"CorpusScan\", \"EntityScan\".",
+          "type": "string"
+        },
+        "rows_in": {
+          "description": "RowsIn is the number of rows fed into this operator.",
+          "type": "integer"
+        },
+        "rows_out": {
+          "description": "RowsOut is the number of rows emitted by this operator after filtering\nand projection.",
+          "type": "integer"
+        }
+      }
+    },
+    "QueryStats": {
+      "type": "object",
+      "properties": {
+        "op_stats": {
+          "description": "OpStats holds per-operator timing and row-count data, in execution order.\nEach entry corresponds to one operator node in the plan tree.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/QueryOpStat"
+          }
+        },
+        "row_count": {
+          "description": "RowCount is the number of rows in the result set.",
+          "type": "integer"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "description": "API error response",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "example": "invalid request body"
+        }
+      }
+    },
+    "PushDocumentRequest": {
+      "description": "One document to push into a push source",
+      "type": "object",
+      "properties": {
+        "content": {
+          "description": "Content is the document's raw bytes, base64-encoded. See\nhandlePushDocuments' doc comment for why base64-in-JSON was chosen\nover multipart/form-data.",
+          "type": "string"
+        },
+        "external_id": {
+          "description": "ExternalID identifies this document within the source and is\ncaller-controlled. Re-pushing the same ExternalID updates the\nexisting document rather than creating a duplicate.",
+          "type": "string"
+        },
+        "group": {
+          "description": "Group is the document's partition key on a group-partitioned corpus:\nthe client, entity or fund it belongs to.\n\nREQUIRED when a claiming corpus declares PARTITION BY GROUP. A push\nsource has one root container and no hierarchy, so a pushed document\nderives no folder segments and would otherwise key to the empty string,\nwhich means \"visible to every partition\". There is no safe default, so\nan ungrouped document is rejected rather than filed arbitrarily.\n\nRejected when no claiming corpus is group-partitioned, so a caller\nsending a group to a folder-partitioned corpus learns it is not\npartitioning the way they think rather than having it silently ignored.\nEnforced in resolveGroupKeys, not here: only the service knows which\ncorpora end up claiming the document.\n\nStored with the document even when no corpus claims it yet, so a\ngroup-partitioned corpus created later claims it under this group\nrather than finding it ungrouped. Validated at accept for that reason.",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Metadata is optional connector-agnostic key/value metadata.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "mime_type": {
+          "description": "MimeType drives normaliser dispatch (PDF, DOCX, XLSX, PPTX, HTML,\nMarkdown, plain text, ...). Required: without it the normaliser\nregistry has nothing to key off.",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path is an optional display path or URL for the document.",
+          "type": "string"
+        },
+        "title": {
+          "description": "Title is the document's display title.",
+          "type": "string"
+        }
+      }
+    },
+    "PushDocumentResult": {
+      "description": "Per-document outcome of a push request",
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "external_id": {
+          "type": "string"
+        },
+        "status": {
+          "description": "Status is the document's ingest status at the moment the push\nreturned, which for an accepted document is always \"processing\" -\nthe bytes are retained and a sync of the source is queued to read\nthem, but nothing has been normalised, indexed or extracted yet.\n\nThis field is the honest half of the contract change described on\nhandlePushDocuments: a document_id no longer means \"searchable now\",\nit means \"accepted, ask later\". Poll GET /api/v1/documents/{id} and\nread ingest_status to find out when that changed.\n\nEmpty on a result that failed before acceptance, where there is no\ndocument to have a status.",
+          "type": "string"
+        }
+      }
+    },
+    "PushDocumentsRequest": {
+      "description": "Request body for pushing one or more documents to a push source",
+      "type": "object",
+      "properties": {
+        "documents": {
+          "description": "Documents is one or more documents to ingest in this call.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PushDocumentRequest"
+          }
+        },
+        "mode": {
+          "description": "Mode is the caller's explicit choice between per-document immediate\nextraction (\"single\") and one accumulated extraction run spanning the\nwhole request (\"batch\"). Required, and deliberately not inferred from\nlen(documents): a caller pushing exactly one document from a poll\ncycle that will send more shortly may still want \"batch\" semantics,\nand a caller forwarding many latency-sensitive events one at a time\nmay still want \"single\" semantics for each. See driving.IngestMode's\ndoc comment for the full reasoning.",
+          "type": "string"
+        }
+      }
+    },
+    "PushDocumentsResponse": {
+      "description": "Response body listing the per-document outcome of a push request",
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PushDocumentResult"
+          }
+        }
+      }
+    },
+    "SourceDocumentsResponse": {
+      "description": "Paginated list of documents belonging to a source",
+      "type": "object",
+      "properties": {
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Document"
+          }
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "StatusResponse": {
+      "description": "Simple status response",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "example": "ok"
+        }
+      }
+    },
+    "SyncAcceptedResponse": {
+      "description": "Sync accepted response",
+      "type": "object",
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "example": "src_abc123"
+        },
+        "status": {
+          "type": "string",
+          "example": "accepted"
+        }
+      }
+    },
+    "ExecutionContext": {
+      "type": "object",
+      "properties": {
+        "corpus_id": {
+          "type": "string"
+        },
+        "ontology_version": {
+          "type": "string"
+        },
+        "pipeline_config_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "QueryRequest": {
+      "type": "object",
+      "properties": {
+        "confirm": {
+          "description": "Confirm when true signals that the caller acknowledges the soft-call-limit\nestimate returned in a prior 202 response and wishes to proceed with live\nplugin calls. Default false; the query returns 202 if the limit is exceeded.",
+          "type": "boolean"
+        },
+        "ir": {
+          "description": "IR is a JSON IR operator tree (same format as POST /api/v1/query/json-ir).",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "serchaql": {
+          "description": "SerchaQL is a SerchaQL text statement (or script).",
+          "type": "string"
+        }
+      }
+    },
+    "QueryResponse": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "$ref": "#/definitions/ExecutionContext"
+        },
+        "notices": {
+          "description": "Notices are the engine's messages about the result as a whole (such\nas a NOT IN over a NULL, or withheld columns).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "stats": {
+          "$ref": "#/definitions/QueryStats"
+        }
+      }
+    },
+    "StartExportRequest": {
+      "description": "Start a large export of one read-only SELECT",
+      "type": "object",
+      "properties": {
+        "format": {
+          "description": "Format is csv (default) or parquet.",
+          "type": "string"
+        },
+        "max_rows": {
+          "description": "MaxRows lowers the server's row cap for this export.",
+          "type": "integer"
+        },
+        "sql": {
+          "description": "SQL is one read-only SerchaQL SELECT.",
+          "type": "string"
+        },
+        "wait_seconds": {
+          "description": "WaitSeconds waits up to this long (max 60) for the export to finish\nbefore answering.",
+          "type": "integer"
+        }
+      }
+    },
+    "ToolCallRequest": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      }
+    },
+    "ToolCallResponse": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "$ref": "#/definitions/ExecutionContext"
+        },
+        "notices": {
+          "description": "Notices are the engine's messages about the result as a whole (such\nas a NOT IN over a NULL, or withheld columns).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "sql": {
+          "type": "string"
+        },
+        "stats": {
+          "$ref": "#/definitions/QueryStats"
+        },
+        "tool": {
+          "type": "string"
+        }
+      }
+    },
+    "ToolParamResponse": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "description": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "ToolResponse": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {
+          "type": "string"
+        },
+        "managed_by": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ToolParamResponse"
+          }
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}
