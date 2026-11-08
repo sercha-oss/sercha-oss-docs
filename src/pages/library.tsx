@@ -103,8 +103,8 @@ export default function Library(): ReactNode {
               Every template is a starting point, not a standard. The{' '}
               <Link to="/serchaql/intro">language reference</Link> covers how to
               model a corpus from scratch, and the{' '}
-              <Link to="/serchaql/example">worked example</Link> walks one
-              through end to end.
+              <Link to="/serchaql/ddl">defining reference</Link> lists every
+              statement with an example.
             </p>
           </section>
         </div>

@@ -1,104 +1,83 @@
 ---
 sidebar_position: 1
-title: What SerchaQL is
-description: A query language for documents. You declare the schema, extraction fills it, and you query the result like a database.
+title: "What SerchaQL is"
+description: "SQL over the model, landed tables, datasets, extracted entities and views: what you can read and how."
 ---
 
-import Playground from '@site/src/components/SerchaQL/Playground';
-
-# SerchaQL
-
-A PDF is not something you can reason about. A clause inside it is.
-
-SerchaQL is how you say which parts matter. You declare a **schema** over your
-documents, the entities and the relationships between them. Extraction fills
-that schema from documents wherever they already live, and you query the result
-like a database.
-
-<Playground
-  query={`-- Declare the shape. Your entities, not ours.
-CREATE ONTOLOGY research;
-
-CREATE ENTITY research.Paper (
-  doi          TEXT KEY,
-  title        TEXT,
-  published_on DATE,
-  peer_reviewed BOOLEAN
-) ROOT SINGULAR PER DOC;`}
-  result={{
-    columns: ['object', 'status'],
-    rows: [
-      {object: 'ontology research', status: 'created'},
-      {object: 'entity research.Paper', status: 'created'},
-    ],
-    ms: 38,
-  }}
-  caption="DDL declares the schema. It never extracts; backfill is always explicit."
-/>
-
-## One language, one endpoint
-
-Every statement kind goes through `POST /api/v1/query`:
-
-| Kind | Statements | Who can run it |
-|---|---|---|
-| **DDL** | `CREATE` / `ALTER` / `DROP` on ontologies, entities, edges, corpuses, pipelines, views | admin |
-| **DCL** | `GRANT`, `REVOKE` | admin |
-| **Binding** | `BIND`, `UNBIND`, `REBIND`, `RUN BINDING` | admin |
-| **DML** | `SELECT` and set operations | any authenticated caller |
-| **Introspection** | `SHOW`, `DESCRIBE`, `EXPLAIN` | admin (except `EXPLAIN`) |
-
-Multiple statements can be sent in one request, separated by semicolons. They
-execute in order and are **not** wrapped in a transaction.
-
-## The four nouns
-
-**Ontology** is a schema namespace. It is a mutable *draft* you can freely
-reshape until you bind it.
-
-**Entity** is a typed object inside an ontology. Once a corpus is bound and
-extracted, it behaves like a table.
-
-**Edge** is a named, directed relationship between two entities, resolved at
-extraction time by matching a field (`EXACT`) or by an LLM judgement (`FUZZY`).
-
-**Corpus** is a set of documents claimed from a source path. Binding a corpus to
-an ontology freezes the draft to an immutable version and pins the binding to it.
-
-:::info Draft until bind
-Structural DDL mutates the draft with zero version churn. `BIND` and `REBIND`
-are what freeze a version. Because **DDL never extracts**, adding a column does
-not retro-populate it. You backfill explicitly with
-`RUN BINDING … EXTRACT (…)`.
+:::note
+Every example on this page is parsed by the SerchaQL engine in a test, and every refused form is checked to still be refused. Agents get the same reference from `describe serchaql`.
 :::
 
-## `KEY` is identity, not a primary key
+SerchaQL is SQL over everything Sercha holds: the model (entities and the
+relations between them), the tables connectors land, cleaned tables, datasets,
+extracted document entities and saved views. It reads like PostgreSQL. This
+page lists what it accepts today. Every example on it is parsed by the engine
+in a test, and every form under "Refused" is checked to still be refused, so
+the page cannot drift from the code.
 
-This is the one thing that surprises people coming from SQL.
+Two kinds of statement:
 
-`KEY` marks the field used to **resolve** an entity: to decide that a "J. Rivera"
-in one document and a "Jordan Rivera" in another are the same person. Duplicates
-before resolution are expected and normal. It is not a uniqueness constraint.
+- **Reading**: one `SELECT` (plus `WITH`, set operations and a few read-only
+  `SHOW` forms). This is what the `query` tool runs.
+- **Defining**: `CREATE`, `ALTER`, `DROP`, `REFRESH`, `GRANT` and the rest.
+  Admins run these (`sercha_define`, or a tenant file applied by an admin).
 
-## Every query is permission-bounded
+## What you can read
 
-A `SELECT` does not need admin, because it is bounded instead by three checks
-composed with AND, all fail-closed:
+| Write | Reads | When |
+|---|---|---|
+| `FROM Order o` | A model entity, by its bare name | Questions about the things the organisation deals with. Start here when there is a model. |
+| `JOIN placed r ON r.from_key = c.key` | A model relation: one row per link, `from_key` and `to_key` | Walking from one entity to another. |
+| `FROM tables.<source>.<table> t` | A table a connector landed, as it arrived | Raw source rows; columns as the source names them. |
+| `FROM clean.<source>.<table> t` | The same table after `NORMALISE` | Matching on names that differ only in case, punctuation or plurals. |
+| `FROM data.<table> d` | A dataset table | Structured data written by a connector or an import. |
+| `FROM data.<table> d AS OF '<UTC time>'` | A dataset as it was at a past time | Comparing now with before. Only `data.` tables; only past times. |
+| `FROM corpus.Entity e` | An entity extracted from documents | Facts read out of documents. `e._doc` is the source document. |
+| `FROM <view> v` | A saved view or materialized view, by name | Reuse a definition someone already wrote. |
 
-1. **Corpus grant**: does the caller hold `SELECT` on this corpus?
-2. **Corpus membership**: which documents belong to the corpus?
-3. **Per-document ACL**: which of those may this caller actually see, according
-   to the permissions carried in from the source system?
+```sql
+SELECT o.key, o.title FROM Order o LIMIT 10
+```
 
-The intersection is pushed into the scan itself. An entity scan cannot be
-constructed without a document filter, and a deny-all result short-circuits
-before touching storage. Sercha grants can never widen what the source system
-allows.
+A model walk: customers and the orders they placed.
 
-Run `EXPLAIN` on any query to see the three layers named in the plan.
+```sql
+SELECT c.key AS customer, o.key AS order_key, o.title
+FROM Customer c
+JOIN placed r ON r.from_key = c.key
+JOIN Order o ON o.key = r.to_key
+LIMIT 20
+```
 
----
+Layer tables and datasets join like any table:
 
-Next: [the full statement reference](./ddl.md), or jump to a
-[worked example](./example.md) that takes a folder of documents all the way to
-a queryable graph.
+```sql
+SELECT t.id, t.title, d.region
+FROM tables.crm.account t
+JOIN data.regions d ON d.account_id = t.id
+```
+
+Extracted entities follow their links with `VIA`, which writes the join for
+you; `describe` prints the exact form for each link:
+
+```sql
+SELECT a.invoice_no, b.name FROM books.Invoice a JOIN books.Supplier b VIA a.supplier
+```
+
+`VIA PERSON` joins two tables on the same person, however each one names them.
+
+Every extracted row has `_doc` (its source document) and `_source_key` (the
+connector item it was made from). A dataset written from the same items
+carries the same `_source_key`:
+
+```sql
+SELECT a._doc, a.total, r.status
+FROM books.Invoice a
+JOIN data.invoices r ON r._source_key = a._source_key
+```
+
+`AS OF` reads a dataset at a past time:
+
+```sql
+SELECT d.id, d.stage FROM data.deals d AS OF '2026-10-01 00:00:00'
+```

@@ -92,8 +92,8 @@ function Hero() {
             <Link className={clsx(styles.btn, styles.btnPrimary)} to="/serchaql/intro">
               Read the docs
             </Link>
-            <Link className={clsx(styles.btn, styles.btnSecondary)} to="/serchaql/example">
-              Worked example
+            <Link className={clsx(styles.btn, styles.btnSecondary)} to="/serchaql/dml">
+              Query reference
             </Link>
           </div>
         </div>
@@ -195,19 +195,19 @@ const refs = [
   {
     title: 'What SerchaQL is',
     to: '/serchaql/intro',
-    desc: 'The four nouns, the permission model, and why KEY is not a primary key.',
+    desc: 'What you can read: the model, landed tables, datasets, extracted entities and views.',
     icon: '$_',
   },
   {
-    title: 'A worked example',
-    to: '/serchaql/example',
-    desc: 'A document corpus taken end to end, one statement at a time.',
+    title: 'Querying',
+    to: '/serchaql/dml',
+    desc: 'Every clause and function, the refused forms with what to write instead, and examples the engine checks.',
     icon: '>>',
   },
   {
-    title: 'Language reference',
+    title: 'Defining',
     to: '/serchaql/ddl',
-    desc: 'Every DDL, DML and access-control statement, with runnable examples.',
+    desc: 'Every admin statement: the model, views, tools, named edges, people and access.',
     icon: '<>',
   },
   {
