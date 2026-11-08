@@ -1,83 +1,45 @@
 ---
+title: SerchaQL
+sidebar_label: Overview
 sidebar_position: 1
-title: "What SerchaQL is"
-description: "SQL over the model, landed tables, datasets, extracted entities and views: what you can read and how."
 ---
 
-:::note
-Every example on this page is parsed by the SerchaQL engine in a test, and every refused form is checked to still be refused. Agents get the same reference from `describe serchaql`.
-:::
-
-SerchaQL is SQL over everything Sercha holds: the model (entities and the
-relations between them), the tables connectors land, cleaned tables, datasets,
-extracted document entities and saved views. It reads like PostgreSQL. This
-page lists what it accepts today. Every example on it is parsed by the engine
-in a test, and every form under "Refused" is checked to still be refused, so
-the page cannot drift from the code.
-
-Two kinds of statement:
-
-- **Reading**: one `SELECT` (plus `WITH`, set operations and a few read-only
-  `SHOW` forms). This is what the `query` tool runs.
-- **Defining**: `CREATE`, `ALTER`, `DROP`, `REFRESH`, `GRANT` and the rest.
-  Admins run these (`sercha_define`, or a tenant file applied by an admin).
-
-## What you can read
-
-| Write | Reads | When |
-|---|---|---|
-| `FROM Order o` | A model entity, by its bare name | Questions about the things the organisation deals with. Start here when there is a model. |
-| `JOIN placed r ON r.from_key = c.key` | A model relation: one row per link, `from_key` and `to_key` | Walking from one entity to another. |
-| `FROM tables.<source>.<table> t` | A table a connector landed, as it arrived | Raw source rows; columns as the source names them. |
-| `FROM clean.<source>.<table> t` | The same table after `NORMALISE` | Matching on names that differ only in case, punctuation or plurals. |
-| `FROM data.<table> d` | A dataset table | Structured data written by a connector or an import. |
-| `FROM data.<table> d AS OF '<UTC time>'` | A dataset as it was at a past time | Comparing now with before. Only `data.` tables; only past times. |
-| `FROM corpus.Entity e` | An entity extracted from documents | Facts read out of documents. `e._doc` is the source document. |
-| `FROM <view> v` | A saved view or materialized view, by name | Reuse a definition someone already wrote. |
+SerchaQL is how you ask Sercha a question. It is SQL, and it reads like PostgreSQL. Sercha holds your organisation's data as tables: the things your business deals with, the systems connected to it, the documents it keeps. You read them with `SELECT`.
 
 ```sql
-SELECT o.key, o.title FROM Order o LIMIT 10
-```
-
-A model walk: customers and the orders they placed.
-
-```sql
-SELECT c.key AS customer, o.key AS order_key, o.title
+SELECT c.key AS customer, COUNT(*) AS orders, SUM(o.amount) AS spend
 FROM Customer c
 JOIN placed r ON r.from_key = c.key
 JOIN Order o ON o.key = r.to_key
-LIMIT 20
+GROUP BY c.key
+ORDER BY spend DESC
+LIMIT 10
 ```
 
-Layer tables and datasets join like any table:
+Every query runs as you. Rows you have not been granted never appear in a result.
 
-```sql
-SELECT t.id, t.title, d.region
-FROM tables.crm.account t
-JOIN data.regions d ON d.account_id = t.id
-```
+## What you can read
 
-Extracted entities follow their links with `VIA`, which writes the join for
-you; `describe` prints the exact form for each link:
+| Write | What it is |
+|---|---|
+| `FROM Order o` | An entity of your organisation's model: a kind of thing it deals with, by name. |
+| `JOIN placed r ON r.from_key = c.key` | A relation of the model: one row per link between two entities. |
+| `FROM tables.crm.account t` | A table a connected system landed, as it arrived. |
+| `FROM clean.crm.account t` | The same table with names normalised for matching. |
+| `FROM data.regions d` | A dataset. Add `AS OF '<time>'` to read it as it was. |
+| `FROM books.Invoice i` | An entity read out of documents, with `i._doc` naming the document. |
+| `FROM open_orders v` | A saved view, by name. |
 
-```sql
-SELECT a.invoice_no, b.name FROM books.Invoice a JOIN books.Supplier b VIA a.supplier
-```
+To see what your organisation has, an agent calls `catalogue` and `describe`; in SQL, `SHOW MODEL` lists the entities and relations.
 
-`VIA PERSON` joins two tables on the same person, however each one names them.
+## Where to run it
 
-Every extracted row has `_doc` (its source document) and `_source_key` (the
-connector item it was made from). A dataset written from the same items
-carries the same `_source_key`:
+- **From an agent:** the `query` tool over MCP runs one `SELECT` and returns the rows with what each column means.
+- **From code:** `POST /api/v1/query` with `{"serchaql": "SELECT ..."}`. See the [API](/api/sercha-api).
+- **Admins** define the model, views and tools with the statements under [Commands](reference/commands.md), through `sercha_define` or a tenant file.
 
-```sql
-SELECT a._doc, a.total, r.status
-FROM books.Invoice a
-JOIN data.invoices r ON r._source_key = a._source_key
-```
+## Next
 
-`AS OF` reads a dataset at a past time:
-
-```sql
-SELECT d.id, d.stage FROM data.deals d AS OF '2026-10-01 00:00:00'
-```
+- [Query syntax](reference/query-syntax.md): the parts of a query, in the order you write them.
+- [Functions](reference/functions.md): text, number, date, conditional, aggregate and window functions.
+- [Commands](reference/commands.md): defining the model, views, tools and access, grouped by object.
