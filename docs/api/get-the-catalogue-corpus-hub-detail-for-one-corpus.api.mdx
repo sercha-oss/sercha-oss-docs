@@ -1,0 +1,71 @@
+---
+id: get-the-catalogue-corpus-hub-detail-for-one-corpus
+title: "Get the catalogue corpus hub detail for one corpus"
+description: "Returns everything an admin needs to see about one corpus in a single screen: its sources, bound ontology (the PINNED version snapshot when the binding has one, otherwise the live draft), every entity's full extraction context, edges, structures, hints, attached datasets, the views that read it, and the full SerchaQL DDL that recreates it."
+sidebar_label: "Get the catalogue corpus hub detail for one corpus"
+hide_title: true
+hide_table_of_contents: true
+api: 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
+sidebar_class_name: "get api-method"
+info_path: api//sercha-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get the catalogue corpus hub detail for one corpus"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/catalogue/corpuses/{name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Returns everything an admin needs to see about one corpus in a single screen: its sources, bound ontology (the PINNED version snapshot when the binding has one, otherwise the live draft), every entity's full extraction context, edges, structures, hints, attached datasets, the views that read it, and the full SerchaQL DDL that recreates it.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"description":"Corpus name","name":"name","in":"path","required":true,"schema":{"type":"string"}}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"OK","content":{"application/json":{"schema":{"type":"object","properties":{"bindings":{"type":"array","items":{"type":"object","properties":{"created_at":{"type":"string"},"edges":{"type":"array","items":{"type":"object","properties":{"cardinality":{"type":"string"},"description":{"type":"string"},"direction":{"type":"string"},"id":{"type":"string"},"inverse_label":{"type":"string"},"is_under":{"description":"IsUnder marks an internal part_of edge that an UNDER modifier produced;\nthe DDL renders it as UNDER on the child entity, not as CREATE EDGE.","type":"boolean"},"label":{"type":"string"},"links":{"type":"array","items":{"type":"object","properties":{"how_resolved":{"type":"string"},"source_property":{"type":"string"},"target_property":{"type":"string"},"within":{"type":"string"}}}},"name":{"type":"string"},"scope":{"type":"string"},"source":{"type":"string"},"target":{"type":"string"}}}},"entities":{"type":"array","items":{"type":"object","properties":{"bounded_per_doc":{"type":"boolean"},"ddl":{"description":"DDL is this entity's CREATE ENTITY statement plus its ALTER ENTITY\nstatements, rendered standalone.","type":"string"},"definition_text":{"type":"string"},"description":{"description":"Description is the entity's extraction-prompt description. Reported\n\"\" when the stored value is the internal \"__lazy__\" marker (see Lazy).","type":"string"},"display_name":{"type":"string"},"example":{"type":"string"},"extends_via_property":{"type":"string"},"extract_per_child":{"type":"boolean"},"group_name":{"type":"string"},"hint_keys":{"description":"HintKeys lists the invocation keys of the binding's hints that target\nthis entity `(extract_internals:<LocalID>` and, for an\nextract-per-child root, `extract_internals:<LocalID>.<Child>`).","type":"array","items":{"type":"string"}},"is_query_derived":{"type":"boolean"},"is_root":{"type":"boolean"},"lazy":{"description":"Lazy is true when the entity's stored Description is the \"__lazy__\"\nconvention value.","type":"boolean"},"local_id":{"type":"string"},"natural_key":{"description":"NaturalKey is the ordered natural-key column list; empty when the\nentity declares none.","type":"array","items":{"type":"string"}},"parent":{"description":"Parent is the UNDER parent's local id, resolved from the internal\npart_of edge this entity's child sits on. Empty for a root or a free\nentity.","type":"string"},"properties":{"type":"array","items":{"type":"object","properties":{"description":{"type":"string"},"display_order":{"type":"integer"},"enum_values":{"type":"array","items":{"type":"string"}},"generation_template":{"description":"GenerationTemplate is set for a GENERATE-backed column; empty\notherwise.","type":"string"},"is_key":{"type":"boolean"},"join_edge":{"type":"string"},"name":{"type":"string"},"required":{"type":"boolean"},"sensitive":{"type":"boolean"},"source_entity":{"type":"string"},"source_kind":{"description":"SourceKind, SourceEntity, SourceProperty and JoinEdge describe a\nproperty copied or joined from elsewhere (extends-via, pack entity\ninjection); empty when the property is extracted directly.","type":"string"},"source_property":{"type":"string"},"type":{"type":"string"}}}},"singular_per_doc":{"type":"boolean"},"source":{"type":"string"},"strict_json":{"type":"boolean"},"target_corpus":{"type":"string"}}}},"frozen_at":{"type":"string"},"frozen_by":{"type":"string"},"hints":{"type":"array","items":{"type":"object","properties":{"hint":{"type":"string"},"invocation_key":{"type":"string"},"op":{"type":"string"},"set_at":{"type":"string"},"set_by":{"type":"string"},"set_by_name":{"description":"SetByName is the display name or email of SetBy when it resolves to a\nknown user; empty when it does not (a deleted user, a system write,\nor the user lookup is not wired).","type":"string"},"target":{"type":"string"}}}},"ontology":{"type":"string"},"ontology_id":{"type":"string"},"pinned_version":{"description":"PinnedVersion is the `\"v<n>\"` label of the pinned version, or \"\" when\nthe binding is unpinned (draft).","type":"string"},"pipeline_id":{"type":"string"},"structures":{"description":"Structures carries each declared entity.Structure marshalled as-is\n(name, levels, cleanup): the UI renders the structure tree directly\nfrom the domain shape rather than a bespoke projection.","type":"array","items":{}},"version_number":{"description":"VersionNumber is the pinned version's number, or 0 for a draft.","type":"integer"}}}},"corpus":{"type":"object","properties":{"archived_at":{"type":"string"},"created_at":{"type":"string"},"id":{"type":"string"},"name":{"type":"string"},"partition":{"type":"object","properties":{"group_field":{"description":"GroupField is the field a document's group arrives in, under the\n\"group\" or \"group_structure\" strategies.","type":"string"},"level":{"type":"integer"},"strategy":{"type":"string"},"structure":{"description":"Structure is `\"<ontology>.<structure>\"` when the corpus organises by a\ndeclared STRUCTURE, under the \"structure\" or \"group_structure\"\nstrategies.","type":"string"}}},"updated_at":{"type":"string"}}},"datasets":{"type":"array","items":{"type":"string"}},"ddl":{"description":"DDL is the full SerchaQL script that recreates this corpus: ontology,\nentities with their EXTRACT/SENSITIVE annotations, structures, edges,\nthe corpus declaration, BIND/REBIND, every hint, attached datasets and\nviews. Rendered by serchaql.RenderCorpusDDL.","type":"string"},"sources":{"type":"array","items":{"type":"object","properties":{"connector":{"description":"Connector is the provider type as written in CREATE CORPUS ON, e.g.\n\"onedrive\" or \"push\": the executor matches a target's connector\nagainst the provider type, so this is what the DDL must carry.","type":"string"},"connector_label":{"description":"ConnectorLabel is the provider's display name for people, e.g.\n\"OneDrive\" or \"Pushed documents\".","type":"string"},"enabled":{"type":"boolean"},"paths":{"type":"array","items":{"type":"object","properties":{"address":{"type":"string"},"container_id":{"type":"string"},"segments":{"type":"array","items":{"type":"string"}}}}},"push":{"type":"boolean"},"source_id":{"type":"string"},"source_name":{"type":"string"}}}},"views":{"type":"array","items":{"type":"object","properties":{"created_at":{"type":"string"},"definition":{"type":"string"},"description":{"type":"string"},"kind":{"description":"\"view\" | \"materialized_view\"","type":"string"},"name":{"type":"string"},"owner":{"type":"string"},"reads":{"description":"Reads lists every corpus and view name the body reads, at any depth\n(the same walk serchaql's dataset_acl.go bodyReadable uses).","type":"array","items":{"type":"string"}}}}}}}}}},"404":{"description":"Not Found","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}},"500":{"description":"Internal Server Error","content":{"application/json":{"schema":{"description":"API error response","type":"object","properties":{"error":{"type":"string","example":"invalid request body"}}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

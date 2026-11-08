@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Sercha Documentation',
-  tagline: 'Query your documents like a database',
+  tagline: 'SerchaQL and the Sercha API',
   favicon: 'img/favicon.svg',
 
   future: {
@@ -33,49 +33,6 @@ const config: Config = {
   themes: ['@docusaurus/theme-mermaid', 'docusaurus-theme-openapi-docs'],
 
   plugins: [
-    // Documentation (guides, quickstart, config) - DISABLED.
-    // These describe the retired sercha-core OSS search product: the framing is
-    // wrong for the platform and parts reference internal detail. The markdown
-    // stays in docs/guides/ for reference; re-enable this block once rewritten.
-    // [
-    //   '@docusaurus/plugin-content-docs',
-    //   {
-    //     id: 'guides',
-    //     path: 'docs/guides',
-    //     routeBasePath: 'docs',
-    //     sidebarPath: require.resolve('./sidebars-guides.js'),
-    //     showLastUpdateAuthor: true,
-    //     showLastUpdateTime: true,
-    //   },
-    // ],
-    // API Reference (auto-generated from OpenAPI spec)
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'api',
-        path: 'docs/api',
-        routeBasePath: 'api',
-        sidebarPath: require.resolve('./sidebars-api.js'),
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
-        docItemComponent: '@theme/ApiItem',
-      },
-    ],
-    // Connectors (per-source setup guides) - DISABLED alongside the guides.
-    // The OAuth walkthroughs are still broadly accurate but they frame Sercha
-    // as a search product and advertise connectors that are not shipped.
-    // [
-    //   '@docusaurus/plugin-content-docs',
-    //   {
-    //     id: 'connectors',
-    //     path: 'docs/connectors',
-    //     routeBasePath: 'connectors',
-    //     sidebarPath: require.resolve('./sidebars-connectors.js'),
-    //     showLastUpdateAuthor: true,
-    //     showLastUpdateTime: true,
-    //   },
-    // ],
-    // SerchaQL - the query language reference and playground
     [
       '@docusaurus/plugin-content-docs',
       {
@@ -83,23 +40,30 @@ const config: Config = {
         path: 'docs/serchaql',
         routeBasePath: 'serchaql',
         sidebarPath: require.resolve('./sidebars-serchaql.js'),
-        showLastUpdateAuthor: true,
         showLastUpdateTime: true,
       },
     ],
-    // OpenAPI docs generator.
-    // Regenerate the source spec from sercha-enterprise with:
-    //   swag init -g cmd/sercha-enterprise/main.go -o docs --parseDependency --parseInternal
-    //   cp docs/swagger.yaml ../sercha-oss-docs/openapi/enterprise.yaml
-    // then `npx docusaurus gen-api-docs all` here.
     [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'api',
+        path: 'docs/api',
+        routeBasePath: 'api',
+        sidebarPath: require.resolve('./sidebars-api.js'),
+        docItemComponent: '@theme/ApiItem',
+      },
+    ],
+    [
+      // The spec is cut from sercha-enterprise's annotations by
+      // scripts/docs-site/public_api.py; regenerate the pages with
+      // npx docusaurus clean-api-docs all && npx docusaurus gen-api-docs all
       'docusaurus-plugin-openapi-docs',
       {
         id: 'api-docs',
         docsPluginId: 'api',
         config: {
           sercha: {
-            specPath: './openapi/enterprise.yaml',
+            specPath: './openapi/sercha-api.json',
             outputDir: 'docs/api',
             sidebarOptions: {
               groupPathsBy: 'tag',
@@ -144,13 +108,8 @@ const config: Config = {
           position: 'left',
         },
         {
-          to: '/library',
-          label: 'Library',
-          position: 'left',
-        },
-        {
-          to: '/api/sercha-enterprise-api',
-          label: 'API Reference',
+          to: '/api/sercha-api',
+          label: 'API',
           position: 'left',
         },
         {
@@ -174,8 +133,7 @@ const config: Config = {
           title: 'Docs',
           items: [
             {label: 'SerchaQL', to: '/serchaql/intro'},
-            {label: 'Library', to: '/library'},
-            {label: 'API Reference', to: '/api/sercha-enterprise-api'},
+            {label: 'API', to: '/api/sercha-api'},
           ],
         },
         {
